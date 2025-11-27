@@ -7,3 +7,6 @@ edition = "2024"
 config = "0.15.19"
 tokio = "1.48.0"
 tracing = "0.1.41"
+
+[dev-dependencies]
+cargo-husky = "1.5.0"

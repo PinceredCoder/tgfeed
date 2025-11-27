@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+
+echo '+cargo +nightly fmt -- --check'
+cargo +nightly fmt -- --check
+echo '+cargo +nightly clippy -- -D warnings'
+cargo +nightly clippy -- -D warnings
