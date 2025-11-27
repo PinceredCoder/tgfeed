@@ -1,2 +1,6 @@
 server_addr = "0.0.0.0:8080"
 healthcheck_addr = "0.0.0.0:8081"
+
+[repo_config]
+connection_string = "mongodb://127.0.0.1:27017"
+database_name = "tgfeed_db"

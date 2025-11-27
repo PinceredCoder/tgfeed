@@ -1,5 +1,8 @@
+.cargo
 */target
 target
-.claude
-.cargo
 Settings.toml
+
+.claude
+
+data

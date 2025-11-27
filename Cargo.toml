@@ -3,12 +3,26 @@ name = "tgfeed"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
-config = "0.15.19"
+[workspace]
+members = ["tgfeed-repo"]
+
+[workspace.dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
 tokio = "1.48.0"
 tracing = "0.1.41"
+thiserror = "2.0.17"
+chrono = { version = "0.4.42", features = ["serde"] }
+futures = "0.3.31"
+
+[dependencies.tgfeed-repo]
+path = "./tgfeed-repo"
+
+[dependencies]
 tracing-subscriber = "0.3.20"
+config = "0.15.19"
+tracing = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
 
 [dev-dependencies]
-cargo-husky = "1.5.0"
+cargo-husky = { version = "1.5.0", features = ["user-hooks"] }

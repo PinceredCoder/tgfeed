@@ -4,6 +4,8 @@ use std::net::SocketAddr;
 pub(crate) struct Config {
     pub server_addr: SocketAddr,
     pub healthcheck_addr: SocketAddr,
+
+    pub repo_config: tgfeed_repo::Config,
 }
 
 impl Default for Config {
