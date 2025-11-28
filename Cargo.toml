@@ -23,6 +23,10 @@ config = "0.15.19"
 tracing = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
+grammers-client = "0.8.1"
+grammers-session = "0.8.0"
+anyhow = "1.0.100"
+grammers-mtsender = "0.8.1"
 
 [dev-dependencies]
 cargo-husky = { version = "1.5.0", features = ["user-hooks"] }

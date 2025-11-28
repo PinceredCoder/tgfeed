@@ -10,6 +10,7 @@ pub use error::{TgFeedRepoError, TgFeedRepoResult};
 
 use crate::models::{StoredMessage, Subscription, SummarizeState};
 
+#[derive(Clone)]
 pub struct Repo {
     db: mongodb::Database,
 }

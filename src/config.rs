@@ -1,9 +1,14 @@
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 #[derive(serde::Deserialize)]
 pub(crate) struct Config {
     pub server_addr: SocketAddr,
     pub healthcheck_addr: SocketAddr,
+
+    pub api_id: i32,
+    pub api_hash: String,
+    pub session_file: PathBuf,
 
     pub repo_config: tgfeed_repo::Config,
 }

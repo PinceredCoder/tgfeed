@@ -1,6 +1,10 @@
 server_addr = "0.0.0.0:8080"
 healthcheck_addr = "0.0.0.0:8081"
 
+api_id = 123456
+api_hash = "your_api_hash_here"
+session_file = "session.sqlite"
+
 [repo_config]
 connection_string = "mongodb://127.0.0.1:27017"
 database_name = "tgfeed_db"

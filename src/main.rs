@@ -1,4 +1,6 @@
 mod config;
+mod service;
+mod utils;
 
 #[tokio::main]
 async fn main() {
@@ -12,7 +14,7 @@ async fn main() {
         "starting service"
     );
 
-    let _repo = tgfeed_repo::Repo::new(&config.repo_config)
+    let repo = tgfeed_repo::Repo::new(&config.repo_config)
         .await
         .expect("failed to initialize repo");
 
@@ -20,4 +22,9 @@ async fn main() {
         database_name = %config.repo_config.database_name,
         "connected to database"
     );
+
+    let tgfeed =
+        service::TgFeedService::new(&config, repo).expect("failed to initialize TGFeed service");
+
+    tgfeed.authorize().await.expect("authorization failed");
 }
