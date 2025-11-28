@@ -7,11 +7,11 @@ impl Repo {
     pub async fn add_subscription(
         &self,
         channel_id: i64,
-        channel_name: String,
+        channel_handle: String,
     ) -> TgFeedRepoResult<()> {
         let sub = Subscription {
             channel_id,
-            channel_name,
+            channel_handle,
             subscribed_at: chrono::Utc::now(),
         };
 

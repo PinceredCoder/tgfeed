@@ -27,4 +27,8 @@ async fn main() {
         service::TgFeedService::new(&config, repo).expect("failed to initialize TGFeed service");
 
     tgfeed.authorize().await.expect("authorization failed");
+
+    if let Err(e) = tgfeed.run().await {
+        tracing::error!(%e, "service failed");
+    }
 }

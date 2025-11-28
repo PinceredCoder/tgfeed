@@ -1,7 +1,7 @@
 mod config;
 mod error;
 mod message;
-mod models;
+pub mod models;
 mod subscription;
 mod summarize;
 

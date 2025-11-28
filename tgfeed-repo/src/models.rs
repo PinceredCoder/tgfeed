@@ -3,7 +3,7 @@ use mongodb::bson::serde_helpers::chrono_datetime_as_bson_datetime;
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Subscription {
     pub channel_id: i64,
-    pub channel_name: String,
+    pub channel_handle: String,
     #[serde(with = "chrono_datetime_as_bson_datetime")]
     pub subscribed_at: chrono::DateTime<chrono::Utc>,
 }
@@ -13,7 +13,7 @@ pub struct StoredMessage {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<mongodb::bson::oid::ObjectId>,
     pub channel_id: i64,
-    pub channel_name: String,
+    pub channel_handle: String,
     pub message_id: i32,
     pub text: String,
     #[serde(with = "chrono_datetime_as_bson_datetime")]
