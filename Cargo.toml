@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace]
-members = ["tgfeed-repo"]
+members = ["tgfeed-bot", "tgfeed-common", "tgfeed-monitor", "tgfeed-repo"]
 
 [workspace.dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
@@ -14,20 +14,27 @@ thiserror = "2.0.17"
 chrono = { version = "0.4.42", features = ["serde"] }
 futures = "0.3.31"
 
-[dependencies.tgfeed-repo]
+[workspace.dependencies.tgfeed-repo]
 path = "./tgfeed-repo"
 
+[workspace.dependencies.tgfeed-common]
+path = "./tgfeed-common"
+
 [dependencies]
+anyhow = "1.0.100"
 tracing-subscriber = "0.3.20"
 config = "0.15.19"
 tracing = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
-grammers-client = "0.8.1"
-grammers-session = "0.8.0"
-anyhow = "1.0.100"
-grammers-mtsender = "0.8.1"
-chrono = { workspace = true }
+tgfeed-repo = { workspace = true }
+tgfeed-common = { workspace = true }
+
+[dependencies.tgfeed-monitor]
+path = "./tgfeed-monitor"
+
+[dependencies.tgfeed-bot]
+path = "./tgfeed-bot"
 
 [dev-dependencies]
 cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
