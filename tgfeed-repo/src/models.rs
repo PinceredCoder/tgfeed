@@ -2,6 +2,7 @@ use mongodb::bson::serde_helpers::chrono_datetime_as_bson_datetime;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Subscription {
+    pub user_id: i64,
     pub channel_id: i64,
     pub channel_handle: String,
     #[serde(with = "chrono_datetime_as_bson_datetime")]

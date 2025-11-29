@@ -10,6 +10,7 @@ use std::sync::Arc;
 pub use config::Config;
 pub use error::*;
 use tgfeed_common::command::MonitorCommand;
+use tgfeed_common::event::BotEvent;
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 
 use crate::utils::prompt;
@@ -22,6 +23,7 @@ pub struct MonitorService {
     updates: MaybeUninit<UnboundedReceiver<grammers_session::updates::UpdatesLike>>,
     repo: tgfeed_repo::Repo,
     command_rx: mpsc::Receiver<MonitorCommand>,
+    event_tx: mpsc::Sender<BotEvent>,
 }
 
 impl MonitorService {
@@ -29,6 +31,7 @@ impl MonitorService {
         config: &Config,
         repo: tgfeed_repo::Repo,
         command_rx: mpsc::Receiver<MonitorCommand>,
+        event_tx: mpsc::Sender<BotEvent>,
     ) -> MonitorResult<Self> {
         let session = Arc::new(grammers_session::storages::SqliteSession::open(
             &config.session_file,
@@ -51,6 +54,7 @@ impl MonitorService {
             api_hash: config.api_hash.clone(),
             repo,
             command_rx,
+            event_tx,
         })
     }
 
@@ -108,7 +112,7 @@ impl MonitorService {
             unsafe { self.updates.assume_init_read() },
             grammers_client::UpdatesConfiguration {
                 catch_up: false,
-                update_queue_limit: Some(100),
+                ..Default::default()
             },
         );
 
@@ -153,22 +157,24 @@ impl MonitorService {
     async fn handle_command(&self, cmd: MonitorCommand) {
         match cmd {
             MonitorCommand::Subscribe {
+                user_id,
                 channel_handle,
                 response,
             } => {
-                let result = self.subscribe_to_channel(&channel_handle).await;
-                let _ = response.send(result);
+                let result = self.subscribe_to_channel(user_id, channel_handle).await;
+                let _ = response.send(result.map_err(|e| e.to_string()));
             }
             MonitorCommand::Unsubscribe {
+                user_id,
                 channel_handle,
                 response,
             } => {
-                let result = self.unsubscribe_from_channel(&channel_handle).await;
-                let _ = response.send(result);
+                let result = self.unsubscribe_from_channel(user_id, channel_handle).await;
+                let _ = response.send(result.map_err(|e| e.to_string()));
             }
-            MonitorCommand::ListSubscriptions { response } => {
-                let subs = self.list_subscriptions().await;
-                let _ = response.send(subs);
+            MonitorCommand::ListSubscriptions { user_id, response } => {
+                let result = self.list_subscriptions(user_id).await;
+                let _ = response.send(result.map_err(|e| e.to_string()));
             }
             _ => (),
         }

@@ -14,6 +14,12 @@ pub enum MonitorError {
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("Channel not found: @{0}")]
+    NotFound(String),
+
+    #[error("Private channels not supported")]
+    EmptyHandle,
 }
 
 impl From<grammers_client::SignInError> for MonitorError {

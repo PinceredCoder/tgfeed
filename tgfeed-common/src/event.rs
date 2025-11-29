@@ -1,0 +1,8 @@
+pub enum BotEvent {
+    NewMessage {
+        channel_id: i64,
+        channel_handle: String,
+        message_id: i32,
+        text: String,
+    },
+}

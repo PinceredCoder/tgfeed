@@ -1,75 +1,68 @@
-use crate::MonitorService;
+use tgfeed_repo::models::Subscription;
+
+use crate::{MonitorError, MonitorResult, MonitorService};
+
+// TODO: change handle to id, as handle can be easily changed
 
 impl MonitorService {
-    pub(crate) async fn subscribe_to_channel(&self, channel: &str) -> Result<(), String> {
-        // Resolve the channel
-        let resolved = self
-            .client
-            .resolve_username(channel)
-            .await
-            .map_err(|e| format!("Failed to resolve channel: {}", e))?;
+    pub(crate) async fn subscribe_to_channel(
+        &self,
+        user_id: i64,
+        channel_handle: String,
+    ) -> MonitorResult<()> {
+        if self
+            .repo
+            .is_user_subscribed(user_id, &channel_handle)
+            .await?
+        {
+            return Ok(());
+        }
+
+        let resolved = self.client.resolve_username(&channel_handle).await?;
 
         let peer = match resolved {
             Some(peer) => peer,
-            None => return Err(format!("Channel @{} not found", channel)),
+            None => return Err(MonitorError::NotFound(channel_handle)),
         };
 
         let channel_id = peer.id().bare_id();
 
-        // Check if already subscribed
-        if self
-            .repo
-            .is_subscribed(channel_id)
-            .await
-            .map_err(|e| e.to_string())?
-        {
-            return Err(format!("Already subscribed to @{}", channel));
+        if let Err(error) = self.client.join_chat(&peer).await {
+            tracing::warn!(
+                %error,
+                "Could not join channel @{channel_handle} (might already be member)"
+            );
         }
 
-        // Try to join the channel
-        if let Err(e) = self.client.join_chat(&peer).await {
-            tracing::warn!("Could not join channel (might already be member): {}", e);
-        }
-
-        // Save subscription
         self.repo
-            .add_subscription(channel_id, channel.to_string())
-            .await
-            .map_err(|e| e.to_string())?;
+            .add_subscription(Subscription {
+                user_id,
+                channel_id,
+                channel_handle,
+                subscribed_at: chrono::Utc::now(),
+            })
+            .await?;
 
-        tracing::info!("Subscribed to @{}", channel);
         Ok(())
     }
 
-    pub(crate) async fn unsubscribe_from_channel(&self, channel: &str) -> Result<(), String> {
-        let subs = self
-            .repo
-            .get_subscriptions()
-            .await
-            .map_err(|e| e.to_string())?;
+    pub(crate) async fn unsubscribe_from_channel(
+        &self,
+        user_id: i64,
+        channel_handle: String,
+    ) -> MonitorResult<()> {
+        self.repo
+            .remove_subscription(user_id, &channel_handle)
+            .await?;
 
-        let sub = subs.iter().find(|s| s.channel_handle == channel);
-
-        match sub {
-            Some(s) => {
-                self.repo
-                    .remove_subscription(s.channel_id)
-                    .await
-                    .map_err(|e| e.to_string())?;
-                tracing::info!("Unsubscribed from @{}", channel);
-                Ok(())
-            }
-            None => Err(format!("Not subscribed to @{}", channel)),
-        }
+        Ok(())
     }
 
-    pub(crate) async fn list_subscriptions(&self) -> Vec<String> {
-        match self.repo.get_subscriptions().await {
-            Ok(subs) => subs.into_iter().map(|s| s.channel_handle).collect(),
-            Err(e) => {
-                tracing::error!("Failed to list subscriptions: {}", e);
-                vec![]
-            }
-        }
+    pub(crate) async fn list_subscriptions(&self, user_id: i64) -> MonitorResult<Vec<String>> {
+        Ok(self
+            .repo
+            .get_user_subscriptions(user_id)
+            .await
+            .map(|s| s.into_iter().map(|c| c.channel_handle).collect())?)
     }
 }

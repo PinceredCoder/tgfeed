@@ -1,4 +1,5 @@
 use tgfeed_common::command::MonitorCommand;
+use tgfeed_common::event::BotEvent;
 use tokio::sync::mpsc;
 
 mod config;
@@ -24,12 +25,19 @@ async fn main() -> anyhow::Result<()> {
         "Connected to database"
     );
 
-    let (monitor_tx, monitor_rx) = mpsc::channel(100);
+    let (monitor_tx, monitor_rx) = mpsc::channel::<MonitorCommand>(100);
 
-    let monitor = tgfeed_monitor::MonitorService::new(&config.monitor_config, repo, monitor_rx)?;
+    let (event_tx, event_rx) = mpsc::channel::<BotEvent>(100);
+
+    let monitor = tgfeed_monitor::MonitorService::new(
+        &config.monitor_config,
+        repo.clone(),
+        monitor_rx,
+        event_tx,
+    )?;
     monitor.authorize().await?;
 
-    let bot = tgfeed_bot::TgFeedBot::new(&config.bot_config, monitor_tx.clone());
+    let bot = tgfeed_bot::TgFeedBot::new(&config.bot_config, monitor_tx.clone(), event_rx, repo);
 
     tracing::info!("Starting bot and monitor...");
 
