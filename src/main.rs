@@ -41,7 +41,7 @@ async fn main() -> anyhow::Result<()> {
     monitor_tx.send(MonitorCommand::Shutdown).await?;
 
     monitor_handle.await??;
-    bot_handle.await?;
+    bot_handle.await??;
 
     Ok(())
 }
