@@ -1,0 +1,17 @@
+[package]
+name = "tgfeed-monitor"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+thiserror = { workspace = true }
+serde = { workspace = true }
+grammers-client = "0.8.1"
+grammers-session = "0.8.0"
+grammers-mtsender = "0.8.1"
+tgfeed-repo = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tgfeed-common = { workspace = true }
+chrono = { workspace = true }
+sqlite = { version = "0.37.0", default-features = false }
