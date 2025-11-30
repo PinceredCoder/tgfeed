@@ -107,6 +107,22 @@ impl MonitorService {
         Ok(())
     }
 
+    // TODO: I don't know if it works
+    pub async fn warm_cache(&self) -> MonitorResult<()> {
+        let channels = self.repo.get_subscribed_channels().await?;
+
+        for handle in channels {
+            tracing::info!(%handle, "warming cache for channel");
+            match self.client.resolve_username(&handle).await {
+                Ok(Some(_)) => tracing::debug!(%handle, "channel resolved"),
+                Ok(None) => tracing::warn!(%handle, "channel not found"),
+                Err(e) => tracing::warn!(%handle, %e, "failed to resolve channel"),
+            }
+        }
+
+        Ok(())
+    }
+
     pub async fn run(mut self) -> MonitorResult<()> {
         let mut updates = self.client.stream_updates(
             unsafe { self.updates.assume_init_read() },

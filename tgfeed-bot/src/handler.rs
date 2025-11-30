@@ -1,4 +1,3 @@
-use teloxide::payloads::SendMessageSetters;
 use teloxide::prelude::Requester;
 use teloxide::utils::command::BotCommands;
 use tgfeed_common::command::MonitorCommand;
@@ -116,6 +115,7 @@ pub(crate) async fn handle_events(
             BotEvent::NewMessage {
                 channel_handle,
                 text,
+                message_id,
                 ..
             } => {
                 let subscribers = match repo.get_channel_subscribers(&channel_handle).await {
@@ -126,11 +126,10 @@ pub(crate) async fn handle_events(
                     }
                 };
 
+                let source_link = format!("https://t.me/{}/{}", channel_handle, message_id);
+
                 // TODO: better
-                let formatted = format!(
-                    "📢 @{channel_handle}\n\n{}",
-                    teloxide::utils::markdown::escape(&text)
-                );
+                let formatted = format!("📢 @{channel_handle}\n\n{text}\n\nSource: {source_link}",);
 
                 for user_id in subscribers {
                     tracing::info!(
@@ -140,9 +139,8 @@ pub(crate) async fn handle_events(
 
                     if let Err(error) = retrier
                         .retry(|| {
-                            let send_msg_fut = bot
-                                .send_message(teloxide::types::ChatId(user_id), &formatted)
-                                .parse_mode(teloxide::types::ParseMode::MarkdownV2);
+                            let send_msg_fut =
+                                bot.send_message(teloxide::types::ChatId(user_id), &formatted);
 
                             tokio::time::timeout(tokio::time::Duration::from_secs(30), send_msg_fut)
                         })

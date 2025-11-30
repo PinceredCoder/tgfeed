@@ -36,6 +36,7 @@ async fn main() -> anyhow::Result<()> {
         event_tx,
     )?;
     monitor.authorize().await?;
+    monitor.warm_cache().await?;
 
     let bot = tgfeed_bot::TgFeedBot::new(&config.bot_config, monitor_tx.clone(), event_rx, repo);
 
