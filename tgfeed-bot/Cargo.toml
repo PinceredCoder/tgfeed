@@ -11,3 +11,4 @@ tgfeed-common = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 tgfeed-repo = { workspace = true }
+retrier = { workspace = true }

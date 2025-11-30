@@ -109,6 +109,8 @@ pub(crate) async fn handle_events(
     repo: tgfeed_repo::Repo,
     mut event_rx: mpsc::Receiver<BotEvent>,
 ) {
+    let retrier = retrier::RetryPolicy::exponential(tokio::time::Duration::from_secs(1));
+
     while let Some(event) = event_rx.recv().await {
         match event {
             BotEvent::NewMessage {
@@ -136,10 +138,14 @@ pub(crate) async fn handle_events(
                         "sending message to user"
                     );
 
-                    // TODO: add timeout and retry
-                    if let Err(error) = bot
-                        .send_message(teloxide::types::ChatId(user_id), &formatted)
-                        .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+                    if let Err(error) = retrier
+                        .retry(|| {
+                            let send_msg_fut = bot
+                                .send_message(teloxide::types::ChatId(user_id), &formatted)
+                                .parse_mode(teloxide::types::ParseMode::MarkdownV2);
+
+                            tokio::time::timeout(tokio::time::Duration::from_secs(30), send_msg_fut)
+                        })
                         .await
                     {
                         tracing::error!(
