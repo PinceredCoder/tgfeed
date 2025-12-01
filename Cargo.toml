@@ -14,6 +14,11 @@ thiserror = "2.0.17"
 chrono = { version = "0.4.42", features = ["serde"] }
 futures = "0.3.31"
 retrier = "0.2.0"
+teloxide = { version = "0.17.0", features = ["macros"] }
+grammers-client = { git = "https://github.com/Lonami/grammers.git" }
+grammers-session = { git = "https://github.com/Lonami/grammers.git" }
+grammers-mtsender = { git = "https://github.com/Lonami/grammers.git" }
+grammers-tl-types = { git = "https://github.com/Lonami/grammers.git" }
 
 [workspace.dependencies.tgfeed-repo]
 path = "./tgfeed-repo"

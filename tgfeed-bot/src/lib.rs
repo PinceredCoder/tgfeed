@@ -1,6 +1,9 @@
 mod command;
 mod config;
 mod handler;
+mod rate_limit;
+
+use std::sync::Arc;
 
 pub use config::Config;
 use teloxide::dispatching::UpdateFilterExt;
@@ -11,6 +14,7 @@ use tgfeed_common::event::BotEvent;
 use tokio::sync::mpsc;
 
 use crate::command::Command;
+use crate::rate_limit::RateLimiters;
 
 pub struct TgFeedBot {
     bot: teloxide::prelude::Bot,
@@ -50,8 +54,13 @@ impl TgFeedBot {
             })
         };
 
+        let rate_limiters = Arc::new(RateLimiters::new());
+
         teloxide::prelude::Dispatcher::builder(self.bot, handler)
-            .dependencies(teloxide::prelude::dptree::deps![self.monitor_tx])
+            .dependencies(teloxide::prelude::dptree::deps![
+                self.monitor_tx,
+                rate_limiters
+            ])
             .enable_ctrlc_handler()
             .build()
             .dispatch()

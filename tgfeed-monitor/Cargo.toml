@@ -6,9 +6,9 @@ edition = "2024"
 [dependencies]
 thiserror = { workspace = true }
 serde = { workspace = true }
-grammers-client = { git = "https://github.com/Lonami/grammers.git" }
-grammers-session = { git = "https://github.com/Lonami/grammers.git" }
-grammers-mtsender = { git = "https://github.com/Lonami/grammers.git" }
+grammers-client = { workspace = true }
+grammers-session = { workspace = true }
+grammers-mtsender = { workspace = true }
 tgfeed-repo = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use teloxide::payloads::SendMessageSetters;
 use teloxide::prelude::Requester;
 use teloxide::utils::command::BotCommands;
@@ -6,17 +8,27 @@ use tgfeed_common::event::BotEvent;
 use tokio::sync::{mpsc, oneshot};
 
 use crate::command::Command;
+use crate::rate_limit::RateLimiters;
 
 pub async fn handle_command(
     bot: teloxide::prelude::Bot,
     msg: teloxide::prelude::Message,
     me: teloxide::types::Me,
     monitor_tx: mpsc::Sender<MonitorCommand>,
+    rate_limiters: Arc<RateLimiters>,
 ) -> teloxide::prelude::ResponseResult<()> {
     let user_id = match msg.from.as_ref() {
         Some(user) => user.id.0 as i64,
         None => return Ok(()),
     };
+
+    if let Err(error) = rate_limiters.commands.check_key(&user_id) {
+        tracing::warn!(%user_id, %error, "rate limit reached");
+        bot.send_message(msg.chat.id, "⏳ Please wait a moment")
+            .await?;
+
+        return Ok(());
+    }
 
     if let Some(text) = msg.text() {
         let response = match BotCommands::parse(text, me.username()) {
@@ -91,8 +103,13 @@ pub async fn handle_command(
                 }
 
                 Command::Summarize => {
-                    // TODO: Implement summarize
-                    "📰 Summarize not yet implemented".to_string()
+                    if let Err(error) = rate_limiters.summarize.check_key(&user_id) {
+                        tracing::warn!(%user_id, %error, "/summarize rate limit reached");
+                        "⏳ /summarize is limited to once per hour".to_string()
+                    } else {
+                        // TODO: Implement summarize
+                        "📰 Summarize not yet implemented".to_string()
+                    }
                 }
             },
             Err(_) => "❌ Unknown command".to_string(),

@@ -5,10 +5,11 @@ edition = "2024"
 
 [dependencies]
 serde = { workspace = true }
-teloxide = { version = "0.17.0", features = ["macros"] }
+teloxide = { workspace = true }
 thiserror = { workspace = true }
 tgfeed-common = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 tgfeed-repo = { workspace = true }
 retrier = { workspace = true }
+governor = "0.10.2"
