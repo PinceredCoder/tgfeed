@@ -7,7 +7,7 @@ impl Repo {
     pub async fn add_subscription(&self, sub: Subscription) -> TgFeedRepoResult<()> {
         self.subscriptions()
             .update_one(
-                doc! { "user_id": sub.user_id, "channel_handle": &sub.channel_handle },
+                doc! { "user_id": sub.user_id, "channel_id": &sub.channel_id },
                 doc! { "$set": mongodb::bson::to_document(&sub)? },
             )
             .upsert(true)
@@ -16,7 +16,7 @@ impl Repo {
         Ok(())
     }
 
-    pub async fn remove_subscription(
+    pub async fn remove_subscription_by_handle(
         &self,
         user_id: i64,
         channel_handle: &str,
@@ -27,6 +27,34 @@ impl Repo {
             .await?;
 
         Ok(result.deleted_count > 0)
+    }
+
+    pub async fn remove_subscription(
+        &self,
+        user_id: i64,
+        channel_id: i64,
+    ) -> TgFeedRepoResult<bool> {
+        let result = self
+            .subscriptions()
+            .delete_one(doc! { "user_id": user_id, "channel_id": channel_id })
+            .await?;
+
+        Ok(result.deleted_count > 0)
+    }
+
+    pub async fn update_subscription_handle(
+        &self,
+        channel_id: i64,
+        new_handle: &str,
+    ) -> TgFeedRepoResult<()> {
+        self.subscriptions()
+            .update_many(
+                doc! { "channel_id": channel_id },
+                doc! { "$set": { "channel_handle": new_handle } },
+            )
+            .await?;
+
+        Ok(())
     }
 
     pub async fn get_user_subscriptions(
@@ -44,24 +72,21 @@ impl Repo {
         Ok(subs)
     }
 
-    pub async fn is_subscribed(&self, channel_handle: &str) -> TgFeedRepoResult<bool> {
+    pub async fn is_subscribed(&self, channel_id: i64) -> TgFeedRepoResult<bool> {
         let count = self
             .subscriptions()
-            .count_documents(doc! { "channel_handle": channel_handle })
+            .count_documents(doc! { "channel_id": channel_id })
             .await?;
 
         Ok(count > 0)
     }
 
-    pub async fn get_channel_subscribers(
-        &self,
-        channel_handle: &str,
-    ) -> TgFeedRepoResult<Vec<i64>> {
+    pub async fn get_channel_subscribers(&self, channel_id: i64) -> TgFeedRepoResult<Vec<i64>> {
         use futures::TryStreamExt;
 
         let cursor = self
             .subscriptions()
-            .find(doc! { "channel_handle": channel_handle })
+            .find(doc! { "channel_id": channel_id })
             .await?;
 
         let subs: Vec<Subscription> = cursor.try_collect().await?;
@@ -71,36 +96,30 @@ impl Repo {
     pub async fn is_user_subscribed(
         &self,
         user_id: i64,
-        channel_handle: &str,
+        channel_id: i64,
     ) -> TgFeedRepoResult<bool> {
         let count = self
             .subscriptions()
-            .count_documents(doc! { "user_id": user_id, "channel_handle": channel_handle })
+            .count_documents(doc! { "user_id": user_id, "channel_id": channel_id })
             .await?;
 
         Ok(count > 0)
     }
 
-    pub async fn has_subscribers(&self, channel_handle: &str) -> TgFeedRepoResult<bool> {
+    pub async fn has_subscribers(&self, channel_id: i64) -> TgFeedRepoResult<bool> {
         let count = self
             .subscriptions()
-            .count_documents(doc! { "channel_handle": channel_handle })
+            .count_documents(doc! { "channel_id": channel_id })
             .await?;
 
         Ok(count > 0)
     }
 
-    pub async fn get_subscribed_channels(&self) -> TgFeedRepoResult<Vec<String>> {
-        let cursor = self
-            .subscriptions()
-            .distinct("channel_handle", doc! {})
-            .await?;
+    pub async fn get_subscribed_channels(&self) -> TgFeedRepoResult<Vec<i64>> {
+        let cursor = self.subscriptions().distinct("channel_id", doc! {}).await?;
 
-        let channel_handles = cursor
-            .into_iter()
-            .filter_map(|v| v.as_str().map(String::from))
-            .collect();
+        let channel_ids = cursor.into_iter().filter_map(|v| v.as_i64()).collect();
 
-        Ok(channel_handles)
+        Ok(channel_ids)
     }
 }

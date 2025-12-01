@@ -107,22 +107,6 @@ impl MonitorService {
         Ok(())
     }
 
-    // TODO: I don't know if it works
-    pub async fn warm_cache(&self) -> MonitorResult<()> {
-        let channels = self.repo.get_subscribed_channels().await?;
-
-        for handle in channels {
-            tracing::info!(%handle, "warming cache for channel");
-            match self.client.resolve_username(&handle).await {
-                Ok(Some(_)) => tracing::debug!(%handle, "channel resolved"),
-                Ok(None) => tracing::warn!(%handle, "channel not found"),
-                Err(e) => tracing::warn!(%handle, %e, "failed to resolve channel"),
-            }
-        }
-
-        Ok(())
-    }
-
     pub async fn run(mut self) -> MonitorResult<()> {
         let mut updates = self.client.stream_updates(
             unsafe { self.updates.assume_init_read() },
@@ -170,6 +154,21 @@ impl MonitorService {
         Ok(())
     }
 
+    async fn resolve_peer(&self, handle: &str) -> MonitorResult<grammers_client::types::Peer> {
+        let resolved = self.client.resolve_username(handle).await?;
+
+        match resolved {
+            Some(peer) => Ok(peer),
+            None => Err(MonitorError::NotFound(handle.to_string())),
+        }
+    }
+
+    fn get_handle(&self, peer: &grammers_client::types::Peer) -> Option<String> {
+        peer.username()
+            .or_else(|| peer.usernames().first().cloned())
+            .map(String::from)
+    }
+
     async fn handle_command(&self, cmd: MonitorCommand) {
         match cmd {
             MonitorCommand::Subscribe {
@@ -178,7 +177,9 @@ impl MonitorService {
                 response,
             } => {
                 let result = self.subscribe_to_channel(user_id, channel_handle).await;
-                let _ = response.send(result.map_err(|e| e.to_string()));
+                response
+                    .send(result.map_err(|e| e.to_string()))
+                    .expect("broken channel");
             }
             MonitorCommand::Unsubscribe {
                 user_id,
@@ -186,11 +187,15 @@ impl MonitorService {
                 response,
             } => {
                 let result = self.unsubscribe_from_channel(user_id, channel_handle).await;
-                let _ = response.send(result.map_err(|e| e.to_string()));
+                response
+                    .send(result.map_err(|e| e.to_string()))
+                    .expect("broken channel");
             }
             MonitorCommand::ListSubscriptions { user_id, response } => {
                 let result = self.list_subscriptions(user_id).await;
-                let _ = response.send(result.map_err(|e| e.to_string()));
+                response
+                    .send(result.map_err(|e| e.to_string()))
+                    .expect("broken channel");
             }
             _ => (),
         }

@@ -14,7 +14,6 @@ pub struct StoredMessage {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<mongodb::bson::oid::ObjectId>,
     pub channel_id: i64,
-    pub channel_handle: String,
     pub message_id: i32,
     pub text: String,
     #[serde(with = "chrono_datetime_as_bson_datetime")]

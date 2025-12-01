@@ -1,3 +1,4 @@
+use teloxide::payloads::SendMessageSetters;
 use teloxide::prelude::Requester;
 use teloxide::utils::command::BotCommands;
 use tgfeed_common::command::MonitorCommand;
@@ -113,12 +114,12 @@ pub(crate) async fn handle_events(
     while let Some(event) = event_rx.recv().await {
         match event {
             BotEvent::NewMessage {
+                channel_id,
                 channel_handle,
                 text,
                 message_id,
-                ..
             } => {
-                let subscribers = match repo.get_channel_subscribers(&channel_handle).await {
+                let subscribers = match repo.get_channel_subscribers(channel_id).await {
                     Ok(subs) => subs,
                     Err(error) => {
                         tracing::error!(%error, "Failed to get subscribers");
@@ -126,10 +127,14 @@ pub(crate) async fn handle_events(
                     }
                 };
 
-                let source_link = format!("https://t.me/{}/{}", channel_handle, message_id);
+                let source_link = format!("https://t.me/c/{}/{}", channel_id, message_id);
 
-                // TODO: better
-                let formatted = format!("📢 @{channel_handle}\n\n{text}\n\nSource: {source_link}",);
+                let formatted = format!(
+                    "📢 @{}\n\n{}\n\n[Source]({})",
+                    teloxide::utils::markdown::escape(&channel_handle),
+                    teloxide::utils::markdown::escape(&text),
+                    source_link,
+                );
 
                 for user_id in subscribers {
                     tracing::info!(
@@ -139,8 +144,9 @@ pub(crate) async fn handle_events(
 
                     if let Err(error) = retrier
                         .retry(|| {
-                            let send_msg_fut =
-                                bot.send_message(teloxide::types::ChatId(user_id), &formatted);
+                            let send_msg_fut = bot
+                                .send_message(teloxide::types::ChatId(user_id), &formatted)
+                                .parse_mode(teloxide::types::ParseMode::MarkdownV2);
 
                             tokio::time::timeout(tokio::time::Duration::from_secs(30), send_msg_fut)
                         })

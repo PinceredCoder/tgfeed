@@ -16,17 +16,16 @@ impl MonitorService {
 
                 let channel_id = peer_id.bare_id();
 
-                // TODO: try p.usernameS()
+                // Check if subscribed
+                if !self.repo.is_subscribed(channel_id).await? {
+                    return Ok(());
+                }
+
                 let channel_handle = message
                     .peer()
                     .ok()
-                    .and_then(|p| p.username().map(String::from))
+                    .and_then(|p| self.get_handle(p))
                     .ok_or_else(|| MonitorError::EmptyHandle)?;
-
-                // Check if subscribed
-                if !self.repo.is_subscribed(&channel_handle).await? {
-                    return Ok(());
-                }
 
                 let text = message.text().to_string();
                 let message_id = message.id();
@@ -41,7 +40,6 @@ impl MonitorService {
                 let stored = StoredMessage {
                     id: None,
                     channel_id,
-                    channel_handle: channel_handle.clone(),
                     message_id,
                     text: text.clone(),
                     date: chrono::Utc::now(),

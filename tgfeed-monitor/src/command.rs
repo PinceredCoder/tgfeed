@@ -1,8 +1,6 @@
 use tgfeed_repo::models::Subscription;
 
-use crate::{MonitorError, MonitorResult, MonitorService};
-
-// TODO: change handle to id, as handle can be easily changed
+use crate::{MonitorResult, MonitorService};
 
 impl MonitorService {
     pub(crate) async fn subscribe_to_channel(
@@ -10,24 +8,14 @@ impl MonitorService {
         user_id: i64,
         channel_handle: String,
     ) -> MonitorResult<()> {
-        if self
-            .repo
-            .is_user_subscribed(user_id, &channel_handle)
-            .await?
-        {
+        let channel = self.resolve_peer(&channel_handle).await?;
+        let channel_id = channel.id().bare_id();
+
+        if self.repo.is_user_subscribed(user_id, channel_id).await? {
             return Ok(());
         }
 
-        let resolved = self.client.resolve_username(&channel_handle).await?;
-
-        let peer = match resolved {
-            Some(peer) => peer,
-            None => return Err(MonitorError::NotFound(channel_handle)),
-        };
-
-        let channel_id = peer.id().bare_id();
-
-        if let Err(error) = self.client.join_chat(&peer).await {
+        if let Err(error) = self.client.join_chat(&channel).await {
             tracing::warn!(
                 %error,
                 "Could not join channel @{channel_handle} (might already be member)"
@@ -51,9 +39,28 @@ impl MonitorService {
         user_id: i64,
         channel_handle: String,
     ) -> MonitorResult<()> {
-        self.repo
-            .remove_subscription(user_id, &channel_handle)
+        let removed = self
+            .repo
+            .remove_subscription_by_handle(user_id, &channel_handle)
             .await?;
+
+        if !removed {
+            tracing::warn!(
+                %channel_handle,
+                "handle not found in the database, trying to resolve the peer"
+            );
+
+            let resolved = self.resolve_peer(&channel_handle).await?;
+            let channel_id = resolved.id().bare_id();
+
+            if self.repo.remove_subscription(user_id, channel_id).await?
+                && let Some(new_handle) = self.get_handle(&resolved)
+            {
+                self.repo
+                    .update_subscription_handle(channel_id, &new_handle)
+                    .await?;
+            }
+        }
 
         Ok(())
     }
