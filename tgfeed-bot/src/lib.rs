@@ -19,7 +19,6 @@ use crate::rate_limit::RateLimiters;
 #[derive(Clone)]
 pub struct TgFeedBot {
     bot_token: String,
-    // event_rx: mpsc::Receiver<BotEvent>,
     monitor_tx: mpsc::Sender<MonitorCommand>,
     rate_limiters: Arc<RateLimiters>,
 }
