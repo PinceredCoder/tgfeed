@@ -1,0 +1,41 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Build run ID (leave empty for latest)'
+        required: false
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact from build
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: build.yml
+          run_id: ${{ inputs.run_id }}
+          name: tgfeed-binary
+          path: ./bin
+      
+      - name: Copy binary to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "bin/tgfeed"
+          target: "/opt/tgfeed/"
+          strip_components: 1
+      
+      - name: Restart service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            chmod +x /opt/tgfeed/tgfeed
+            sudo systemctl restart tgfeed
