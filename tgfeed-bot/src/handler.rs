@@ -132,7 +132,7 @@ pub async fn handle_command(
             Err(_) => "❌ Unknown command".to_string(),
         };
 
-        bot.send_message(msg.chat.id, response)
+        bot.send_message(msg.chat.id, teloxide::utils::markdown::escape(&response))
             .parse_mode(teloxide::types::ParseMode::MarkdownV2)
             .await?;
     }
