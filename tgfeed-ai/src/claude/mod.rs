@@ -41,8 +41,8 @@ impl Summarizer for ClaudeClient {
 
         let prompt = format!(
             r#"
-            Summarize the following Telegram channel messages. They are news. Group by topic if possible. 
-            Be concise:
+            Сделай сводку новотей из следущих сообщений из Telegram-каналов. Сгруппируй по теме, если возможно.
+            Будь краток:
             
             {}
             "#,
@@ -61,10 +61,19 @@ impl Summarizer for ClaudeClient {
             .client
             .post("https://api.anthropic.com/v1/messages")
             .header("x-api-key", &self.api_key)
+            .header("anthropic-version", "2023-06-01")
             .header("content-type", "application/json")
             .json(&request)
             .send()
             .await?;
+
+        // Check status before parsing
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            tracing::error!(%status, %body, "Claude API error");
+            return Err(TgfeedAiError::Api(format!("{status}: {body}")));
+        }
 
         let response = response.json::<ClaudeResponse>().await?;
 

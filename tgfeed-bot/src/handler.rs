@@ -107,6 +107,7 @@ pub async fn handle_command(
                         tracing::warn!(%user_id, %error, "/summarize rate limit reached");
                         "⏳ /summarize is limited to once per hour".to_string()
                     } else {
+                        // TODO: edit message instead
                         let _message = bot
                             .send_message(msg.chat.id, "⏳ Generating summary...")
                             .await?;
