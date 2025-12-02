@@ -8,6 +8,7 @@ pub(crate) struct Config {
     pub monitor_config: tgfeed_monitor::Config,
     pub bot_config: tgfeed_bot::Config,
     pub repo_config: tgfeed_repo::Config,
+    pub ai_config: tgfeed_ai::Config,
 }
 
 impl Default for Config {

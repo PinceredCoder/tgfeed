@@ -4,7 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace]
-members = ["tgfeed-bot", "tgfeed-common", "tgfeed-monitor", "tgfeed-repo"]
+members = [
+    "tgfeed-ai",
+    "tgfeed-bot",
+    "tgfeed-common",
+    "tgfeed-monitor",
+    "tgfeed-repo",
+]
 
 [workspace.dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
@@ -15,6 +21,7 @@ chrono = { version = "0.4.42", features = ["serde"] }
 futures = "0.3.31"
 retrier = "0.2.0"
 teloxide = { version = "0.17.0", features = ["macros"] }
+reqwest = "0.12.24"
 grammers-client = { git = "https://github.com/Lonami/grammers.git" }
 grammers-session = { git = "https://github.com/Lonami/grammers.git" }
 grammers-mtsender = { git = "https://github.com/Lonami/grammers.git" }
@@ -29,6 +36,9 @@ path = "./tgfeed-common"
 [workspace.dependencies.tgfeed-monitor]
 path = "./tgfeed-monitor"
 
+[workspace.dependencies.tgfeed-ai]
+path = "./tgfeed-ai"
+
 [dependencies]
 anyhow = "1.0.100"
 tracing-subscriber = "0.3.20"
@@ -39,6 +49,7 @@ tokio = { workspace = true }
 tgfeed-repo = { workspace = true }
 tgfeed-common = { workspace = true }
 tgfeed-monitor = { workspace = true }
+tgfeed-ai = { workspace = true }
 
 [dependencies.tgfeed-bot]
 path = "./tgfeed-bot"

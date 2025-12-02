@@ -20,6 +20,9 @@ pub enum MonitorError {
 
     #[error("Private channels not supported")]
     EmptyHandle,
+
+    #[error("AI error: {0}")]
+    AI(#[from] tgfeed_ai::TgfeedAiError),
 }
 
 impl From<grammers_client::SignInError> for MonitorError {

@@ -4,5 +4,6 @@ pub enum BotEvent {
         channel_handle: String,
         message_id: i32,
         text: String,
+        subscribers: Vec<i64>,
     },
 }

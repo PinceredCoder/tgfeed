@@ -1,9 +1,10 @@
+use tgfeed_ai::Summarizer;
 use tgfeed_common::event::BotEvent;
 use tgfeed_repo::models::StoredMessage;
 
 use crate::{MonitorError, MonitorResult, MonitorService};
 
-impl MonitorService {
+impl<S: Summarizer> MonitorService<S> {
     pub(crate) async fn handle_update(&self, update: grammers_client::Update) -> MonitorResult<()> {
         match update {
             grammers_client::Update::NewMessage(message) if !message.outgoing() => {
@@ -11,6 +12,13 @@ impl MonitorService {
 
                 // Only process channel messages
                 if peer_id.kind() != grammers_session::types::PeerKind::Channel {
+                    return Ok(());
+                }
+
+                let text = message.text().to_string();
+
+                // TODO: notify user if the message contains media
+                if text.is_empty() {
                     return Ok(());
                 }
 
@@ -27,7 +35,6 @@ impl MonitorService {
                     .and_then(|p| self.get_handle(p))
                     .ok_or_else(|| MonitorError::EmptyHandle)?;
 
-                let text = message.text().to_string();
                 let message_id = message.id();
 
                 tracing::info!(
@@ -47,16 +54,24 @@ impl MonitorService {
 
                 self.repo.store_message(stored).await?;
 
-                let event = BotEvent::NewMessage {
-                    channel_id,
-                    channel_handle,
-                    message_id,
-                    text,
-                };
+                match self.repo.get_channel_subscribers(channel_id).await {
+                    Ok(subscribers) => {
+                        let event = BotEvent::NewMessage {
+                            channel_id,
+                            channel_handle,
+                            message_id,
+                            text,
+                            subscribers,
+                        };
 
-                if let Err(error) = self.event_tx.send(event).await {
-                    tracing::error!(%error, "Failed sending event to bot");
-                }
+                        if let Err(error) = self.event_tx.send(event).await {
+                            tracing::error!(%error, "Failed sending event to bot");
+                        }
+                    }
+                    Err(error) => {
+                        tracing::error!(%error, "Failed to get subscribers");
+                    }
+                };
             }
             _ => {}
         }

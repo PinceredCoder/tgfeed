@@ -19,5 +19,10 @@ pub enum MonitorCommand {
         response: oneshot::Sender<Result<Vec<String>, String>>,
     },
 
+    Summarize {
+        user_id: i64,
+        response: oneshot::Sender<Result<String, String>>,
+    },
+
     Shutdown,
 }

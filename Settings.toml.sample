@@ -12,3 +12,6 @@ token = "your_bot_token_here"
 [repo_config]
 connection_string = "mongodb://127.0.0.1:27017"
 database_name = "tgfeed_db"
+
+[ai_config.claude]
+api_key = "your_api_key_here"

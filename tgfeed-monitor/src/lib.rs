@@ -9,13 +9,14 @@ use std::sync::Arc;
 
 pub use config::Config;
 pub use error::*;
+use tgfeed_ai::Summarizer;
 use tgfeed_common::command::MonitorCommand;
 use tgfeed_common::event::BotEvent;
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 
 use crate::utils::prompt;
 
-pub struct MonitorService {
+pub struct MonitorService<S: Summarizer> {
     client: grammers_client::Client,
     api_hash: String,
     // need to store to keep session alive
@@ -24,12 +25,14 @@ pub struct MonitorService {
     repo: tgfeed_repo::Repo,
     command_rx: mpsc::Receiver<MonitorCommand>,
     event_tx: mpsc::Sender<BotEvent>,
+    summarizer: S,
 }
 
-impl MonitorService {
+impl<S: Summarizer> MonitorService<S> {
     pub fn new(
         config: &Config,
         repo: tgfeed_repo::Repo,
+        summarizer: S,
         command_rx: mpsc::Receiver<MonitorCommand>,
         event_tx: mpsc::Sender<BotEvent>,
     ) -> MonitorResult<Self> {
@@ -53,6 +56,7 @@ impl MonitorService {
             updates: MaybeUninit::new(updates),
             api_hash: config.api_hash.clone(),
             repo,
+            summarizer,
             command_rx,
             event_tx,
         })
@@ -111,7 +115,7 @@ impl MonitorService {
         let mut updates = self.client.stream_updates(
             unsafe { self.updates.assume_init_read() },
             grammers_client::UpdatesConfiguration {
-                catch_up: true,
+                catch_up: false,
                 ..Default::default()
             },
         );
@@ -197,7 +201,13 @@ impl MonitorService {
                     .send(result.map_err(|e| e.to_string()))
                     .expect("broken channel");
             }
-            _ => (),
+            MonitorCommand::Summarize { user_id, response } => {
+                let result = self.summarize(user_id).await;
+                response
+                    .send(result.map_err(|e| e.to_string()))
+                    .expect("broken channel");
+            }
+            MonitorCommand::Shutdown => (),
         }
     }
 }

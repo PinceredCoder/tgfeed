@@ -23,6 +23,7 @@ impl Repo {
 
     pub async fn get_messages_since(
         &self,
+        channel_ids: &[i64],
         since: chrono::DateTime<Utc>,
     ) -> TgFeedRepoResult<Vec<StoredMessage>> {
         use futures::TryStreamExt;
@@ -30,6 +31,7 @@ impl Repo {
         let cursor = self
             .messages()
             .find(doc! {
+                "channel_id": { "$in": channel_ids },
                 "date": { "$gte": since }
             })
             .sort(doc! { "date": 1 })

@@ -1,3 +1,4 @@
+use tgfeed_ai::claude::ClaudeClient;
 use tgfeed_common::command::MonitorCommand;
 use tgfeed_common::event::BotEvent;
 use tokio::sync::mpsc;
@@ -26,23 +27,30 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let (monitor_tx, monitor_rx) = mpsc::channel::<MonitorCommand>(100);
-
     let (event_tx, event_rx) = mpsc::channel::<BotEvent>(100);
 
-    let monitor = tgfeed_monitor::MonitorService::new(
-        &config.monitor_config,
-        repo.clone(),
-        monitor_rx,
-        event_tx,
-    )?;
+    let monitor = match config.ai_config {
+        tgfeed_ai::Config::Claude(ai_config) => {
+            let summarizer = ClaudeClient::new(&ai_config);
+
+            tgfeed_monitor::MonitorService::new(
+                &config.monitor_config,
+                repo.clone(),
+                summarizer,
+                monitor_rx,
+                event_tx,
+            )?
+        }
+    };
+
     monitor.authorize().await?;
 
-    let bot = tgfeed_bot::TgFeedBot::new(&config.bot_config, monitor_tx.clone(), event_rx, repo);
+    let bot = tgfeed_bot::TgFeedBot::new(&config.bot_config, monitor_tx.clone());
 
     tracing::info!("Starting bot and monitor...");
 
     let monitor_handle = tokio::spawn(monitor.run());
-    let bot_handle = tokio::spawn(bot.run());
+    let bot_handle = tokio::spawn(bot.run(event_rx));
 
     tokio::signal::ctrl_c().await?;
 

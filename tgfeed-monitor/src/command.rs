@@ -1,8 +1,9 @@
+use tgfeed_ai::{MessageData, Summarizer};
 use tgfeed_repo::models::Subscription;
 
 use crate::{MonitorResult, MonitorService};
 
-impl MonitorService {
+impl<S: Summarizer> MonitorService<S> {
     pub(crate) async fn subscribe_to_channel(
         &self,
         user_id: i64,
@@ -71,5 +72,50 @@ impl MonitorService {
             .get_user_subscriptions(user_id)
             .await
             .map(|s| s.into_iter().map(|c| c.channel_handle).collect())?)
+    }
+
+    pub(crate) async fn summarize(&self, user_id: i64) -> MonitorResult<String> {
+        let subscriptions = self.repo.get_user_subscriptions(user_id).await?;
+
+        if subscriptions.is_empty() {
+            return Ok("No subscriptions to summarize.".to_string());
+        }
+
+        let since = match self.repo.get_last_summarize_time(user_id).await {
+            Ok(time) => time,
+            Err(error) => {
+                tracing::error!(%error, "Failed to get last summarize time");
+                chrono::Utc::now() - chrono::Duration::days(7)
+            }
+        };
+
+        let mut channels_map: std::collections::HashMap<i64, String> = subscriptions
+            .into_iter()
+            .map(|s| (s.channel_id, s.channel_handle))
+            .collect();
+
+        let channel_ids = channels_map.keys().cloned().collect::<Vec<_>>();
+
+        // Get messages
+        let messages = self.repo.get_messages_since(&channel_ids, since).await?;
+
+        if messages.is_empty() {
+            return Ok("No new messages since last summary.".to_string());
+        }
+
+        let messages_data = messages
+            .into_iter()
+            .filter_map(|m| {
+                let channel_handle = channels_map.remove(&m.channel_id)?;
+
+                Some(MessageData {
+                    channel_handle,
+                    text: m.text,
+                    date: m.date,
+                })
+            })
+            .collect::<Vec<_>>();
+
+        Ok(self.summarizer.summarize(messages_data).await?)
     }
 }
