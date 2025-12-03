@@ -81,10 +81,16 @@ impl Summarizer for ClaudeClient {
             return Err(TgfeedAiError::Api(error.message));
         }
 
-        Ok(response
+        let summary = response
             .content
-            .first()
-            .map(|c| c.text.clone())
-            .unwrap_or_else(|| "No summary generated.".to_string()))
+            .into_iter()
+            .map(|c| c.text)
+            .collect::<String>();
+
+        if summary.is_empty() {
+            Ok("No summary generated".to_string())
+        } else {
+            Ok(summary)
+        }
     }
 }
