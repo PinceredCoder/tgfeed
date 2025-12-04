@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifact from build
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v11
         with:
           workflow: build.yaml
           run_id: ${{ inputs.run_id }}
@@ -21,7 +21,7 @@ jobs:
           path: ./bin
       
       - name: Copy binary to VPS
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           port: ${{ secrets.VPS_PORT }}
@@ -32,7 +32,7 @@ jobs:
           strip_components: 1
       
       - name: Restart service
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
