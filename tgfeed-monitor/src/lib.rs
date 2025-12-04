@@ -167,7 +167,7 @@ impl<S: Summarizer> MonitorService<S> {
         }
     }
 
-    fn get_handle(&self, peer: &grammers_client::types::Peer) -> Option<String> {
+    fn get_handle(peer: &grammers_client::types::Peer) -> Option<String> {
         peer.username()
             .or_else(|| peer.usernames().first().cloned())
             .map(String::from)

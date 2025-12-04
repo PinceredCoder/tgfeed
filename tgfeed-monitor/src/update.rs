@@ -32,7 +32,7 @@ impl<S: Summarizer> MonitorService<S> {
                 let channel_handle = message
                     .peer()
                     .ok()
-                    .and_then(|p| self.get_handle(p))
+                    .and_then(|p| Self::get_handle(p))
                     .ok_or_else(|| MonitorError::EmptyHandle)?;
 
                 let message_id = message.id();

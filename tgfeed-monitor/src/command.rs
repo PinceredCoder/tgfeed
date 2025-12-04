@@ -63,7 +63,7 @@ impl<S: Summarizer> MonitorService<S> {
             let channel_id = resolved.id().bare_id();
 
             if self.repo.remove_subscription(user_id, channel_id).await?
-                && let Some(new_handle) = self.get_handle(&resolved)
+                && let Some(new_handle) = Self::get_handle(&resolved)
             {
                 self.repo
                     .update_subscription_handle(channel_id, &new_handle)
@@ -93,7 +93,7 @@ impl<S: Summarizer> MonitorService<S> {
             Ok(time) => time,
             Err(error) => {
                 tracing::error!(%error, "Failed to get last summarize time");
-                chrono::Utc::now() - chrono::Duration::days(7)
+                chrono::Utc::now() - chrono::Duration::days(3)
             }
         };
 
@@ -105,7 +105,10 @@ impl<S: Summarizer> MonitorService<S> {
         let channel_ids = channels_map.keys().cloned().collect::<Vec<_>>();
 
         // Get messages
-        let messages = self.repo.get_messages_since(&channel_ids, since).await?;
+        let messages = self
+            .repo
+            .get_messages_since(&channel_ids, since, 150)
+            .await?;
 
         if messages.is_empty() {
             return Ok("No new messages since last summary.".to_string());
@@ -123,6 +126,8 @@ impl<S: Summarizer> MonitorService<S> {
                 })
             })
             .collect::<Vec<_>>();
+
+        self.repo.update_summarize_time(user_id).await?;
 
         Ok(self.summarizer.summarize(messages_data).await?)
     }

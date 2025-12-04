@@ -134,8 +134,8 @@ pub async fn handle_command(
             Err(_) => "❌ Unknown command".to_string(),
         };
 
-        bot.send_message(msg.chat.id, teloxide::utils::markdown::escape(&response))
-            .parse_mode(teloxide::types::ParseMode::MarkdownV2)
+        bot.send_message(msg.chat.id, response)
+            .parse_mode(teloxide::types::ParseMode::Html)
             .await?;
     }
 
@@ -160,9 +160,9 @@ pub(crate) async fn handle_events(
                 let source_link = format!("https://t.me/c/{}/{}", channel_id, message_id);
 
                 let formatted = format!(
-                    "📢 @{}\n\n{}\n\n[Source]({})",
-                    teloxide::utils::markdown::escape(&channel_handle),
-                    teloxide::utils::markdown::escape(&text),
+                    "📢 @{}\n\n{}\n\n<a href=\"{}\">Source</a>",
+                    teloxide::utils::html::escape(&channel_handle),
+                    teloxide::utils::html::escape(&text),
                     source_link,
                 );
 
@@ -176,7 +176,7 @@ pub(crate) async fn handle_events(
                         .retry(|| {
                             let send_msg_fut = bot
                                 .send_message(teloxide::types::ChatId(user_id), &formatted)
-                                .parse_mode(teloxide::types::ParseMode::MarkdownV2);
+                                .parse_mode(teloxide::types::ParseMode::Html);
 
                             tokio::time::timeout(tokio::time::Duration::from_secs(30), send_msg_fut)
                         })
