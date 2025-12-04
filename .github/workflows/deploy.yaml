@@ -15,7 +15,7 @@ jobs:
       - name: Download artifact from build
         uses: dawidd6/action-download-artifact@v3
         with:
-          workflow: build.yml
+          workflow: build.yaml
           run_id: ${{ inputs.run_id }}
           name: tgfeed-binary
           path: ./bin
