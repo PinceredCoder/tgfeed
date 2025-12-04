@@ -30,7 +30,9 @@ pub async fn handle_command(
     if let Some(text) = msg.text() {
         let response = match BotCommands::parse(text, me.username()) {
             Ok(cmd) => match cmd {
-                Command::Help | Command::Start => Command::descriptions().to_string(),
+                Command::Start => "👋 Hello! This is a Telegram channels aggregator. Run /help to see the available commands.".to_string(),
+
+                Command::Help => Command::descriptions().to_string(),
 
                 Command::Subscribe(channel_handle) => {
                     let channel_handle = channel_handle.trim().trim_start_matches('@').to_string();
@@ -191,10 +193,10 @@ pub(crate) async fn handle_events(
                             "message sent"
                         );
                     }
-                }
 
-                // TODO: make map for each user
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    // TODO: make map for each user
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                }
             }
         }
     }
