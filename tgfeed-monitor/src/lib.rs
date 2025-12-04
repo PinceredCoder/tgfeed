@@ -115,7 +115,7 @@ impl<S: Summarizer> MonitorService<S> {
         let mut updates = self.client.stream_updates(
             unsafe { self.updates.assume_init_read() },
             grammers_client::UpdatesConfiguration {
-                catch_up: true,
+                catch_up: false,
                 ..Default::default()
             },
         );
@@ -174,6 +174,21 @@ impl<S: Summarizer> MonitorService<S> {
     }
 
     async fn handle_command(&self, cmd: MonitorCommand) {
+        if let Some(user_id) = cmd.get_user_id() {
+            match self.repo.is_user_allowed(user_id).await {
+                Ok(allowed) if !allowed => {
+                    cmd.respond_with_error("Sorry, you are not allowed to use this bot 🙅‍♂️. Contact the admin if you want to get the access.".to_string());
+                    return;
+                }
+                Err(error) => {
+                    tracing::error!(%error, "failed checking if user is allowed to use the service");
+                    cmd.respond_with_error("Internal server error".to_string());
+                    return;
+                }
+                _ => (),
+            }
+        }
+
         match cmd {
             MonitorCommand::Subscribe {
                 user_id,

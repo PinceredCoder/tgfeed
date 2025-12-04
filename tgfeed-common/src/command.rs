@@ -26,3 +26,33 @@ pub enum MonitorCommand {
 
     Shutdown,
 }
+
+impl MonitorCommand {
+    pub fn get_user_id(&self) -> Option<i64> {
+        match self {
+            MonitorCommand::Subscribe { user_id, .. }
+            | MonitorCommand::Unsubscribe { user_id, .. }
+            | MonitorCommand::ListSubscriptions { user_id, .. }
+            | MonitorCommand::Summarize { user_id, .. } => Some(*user_id),
+            MonitorCommand::Shutdown => None,
+        }
+    }
+
+    pub fn respond_with_error(self, message: String) {
+        match self {
+            MonitorCommand::Subscribe { response, .. } => {
+                response.send(Err(message)).expect("broken channel")
+            }
+            MonitorCommand::Unsubscribe { response, .. } => {
+                response.send(Err(message)).expect("broken channel")
+            }
+            MonitorCommand::ListSubscriptions { response, .. } => {
+                response.send(Err(message)).expect("broken channel")
+            }
+            MonitorCommand::Summarize { response, .. } => {
+                response.send(Err(message)).expect("broken channel")
+            }
+            MonitorCommand::Shutdown => (),
+        }
+    }
+}

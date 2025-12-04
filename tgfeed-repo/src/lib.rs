@@ -4,11 +4,12 @@ mod message;
 pub mod models;
 mod subscription;
 mod summarize;
+mod user;
 
 pub use config::Config;
 pub use error::{TgFeedRepoError, TgFeedRepoResult};
 
-use crate::models::{StoredMessage, Subscription, SummarizeState};
+use crate::models::{StoredMessage, Subscription, SummarizeState, User};
 
 #[derive(Clone)]
 pub struct Repo {
@@ -37,5 +38,9 @@ impl Repo {
 
     fn summarize_state(&self) -> mongodb::Collection<SummarizeState> {
         self.db.collection("summarize_state")
+    }
+
+    fn users(&self) -> mongodb::Collection<User> {
+        self.db.collection("users")
     }
 }

@@ -28,3 +28,9 @@ pub struct SummarizeState {
     #[serde(with = "chrono_datetime_as_bson_datetime")]
     pub last_summarized_at: chrono::DateTime<chrono::Utc>,
 }
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct User {
+    pub telegram_id: i64,
+    pub allowed: bool,
+}
