@@ -1,7 +1,10 @@
 use tgfeed_ai::{MessageData, Summarizer};
 use tgfeed_repo::models::Subscription;
 
-use crate::{MonitorResult, MonitorService};
+use crate::{MonitorError, MonitorResult, MonitorService};
+
+// TODO: from config?
+const MAX_SUBSCRIPTIONS_PER_USER: usize = 20;
 
 impl<S: Summarizer> MonitorService<S> {
     pub(crate) async fn subscribe_to_channel(
@@ -9,6 +12,11 @@ impl<S: Summarizer> MonitorService<S> {
         user_id: i64,
         channel_handle: String,
     ) -> MonitorResult<()> {
+        let current_subs = self.repo.get_user_subscriptions(user_id).await?;
+        if current_subs.len() >= MAX_SUBSCRIPTIONS_PER_USER {
+            return Err(MonitorError::SubscriptionLimit(MAX_SUBSCRIPTIONS_PER_USER));
+        }
+
         let channel = self.resolve_peer(&channel_handle).await?;
         let channel_id = channel.id().bare_id();
 

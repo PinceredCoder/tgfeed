@@ -23,6 +23,9 @@ pub enum MonitorError {
 
     #[error("AI error: {0}")]
     AI(#[from] tgfeed_ai::TgfeedAiError),
+
+    #[error("Subscription limit reached (max {0} channels)")]
+    SubscriptionLimit(usize),
 }
 
 impl From<grammers_client::SignInError> for MonitorError {
