@@ -3113,6 +3113,7 @@ name = "tgfeed-bot"
 version = "0.1.0"
 dependencies = [
  "governor",
+ "reqwest",
  "retrier",
  "serde",
  "teloxide",
@@ -3126,6 +3127,9 @@ dependencies = [
 name = "tgfeed-common"
 version = "0.1.0"
 dependencies = [
+ "grammers-tl-types",
+ "reqwest",
+ "teloxide",
  "tokio",
 ]
 

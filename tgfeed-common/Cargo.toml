@@ -5,3 +5,6 @@ edition = "2024"
 
 [dependencies]
 tokio = { workspace = true }
+grammers-tl-types = { workspace = true }
+teloxide = { workspace = true }
+reqwest = { workspace = true }

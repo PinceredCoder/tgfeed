@@ -4,7 +4,7 @@ use tgfeed_repo::models::Subscription;
 use crate::{MonitorError, MonitorResult, MonitorService};
 
 // TODO: from config?
-const MAX_SUBSCRIPTIONS_PER_USER: usize = 20;
+const MAX_SUBSCRIPTIONS_PER_USER: usize = 30;
 
 impl<S: Summarizer> MonitorService<S> {
     pub(crate) async fn subscribe_to_channel(

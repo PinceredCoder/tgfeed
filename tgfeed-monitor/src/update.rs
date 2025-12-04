@@ -15,13 +15,6 @@ impl<S: Summarizer> MonitorService<S> {
                     return Ok(());
                 }
 
-                let text = message.text().to_string();
-
-                // TODO: notify user if the message contains media
-                if text.is_empty() {
-                    return Ok(());
-                }
-
                 let channel_id = peer_id.bare_id();
 
                 // Check if subscribed
@@ -44,6 +37,8 @@ impl<S: Summarizer> MonitorService<S> {
                     "new message"
                 );
 
+                let text = message.text().to_string();
+
                 let stored = StoredMessage {
                     id: None,
                     channel_id,
@@ -54,6 +49,8 @@ impl<S: Summarizer> MonitorService<S> {
 
                 self.repo.store_message(stored).await?;
 
+                let entities = tgfeed_common::utils::convert_entities(message.fmt_entities());
+
                 match self.repo.get_channel_subscribers(channel_id).await {
                     Ok(subscribers) => {
                         let event = BotEvent::NewMessage {
@@ -62,6 +59,7 @@ impl<S: Summarizer> MonitorService<S> {
                             message_id,
                             text,
                             subscribers,
+                            entities,
                         };
 
                         if let Err(error) = self.event_tx.send(event).await {

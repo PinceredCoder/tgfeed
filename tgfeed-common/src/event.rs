@@ -5,5 +5,6 @@ pub enum BotEvent {
         message_id: i32,
         text: String,
         subscribers: Vec<i64>,
+        entities: Vec<teloxide::types::MessageEntity>,
     },
 }

@@ -11,4 +11,5 @@ tgfeed-common = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 retrier = { workspace = true }
+reqwest = { workspace = true }
 governor = "0.10.2"
