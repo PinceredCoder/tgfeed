@@ -107,7 +107,7 @@ impl<S: Summarizer> MonitorService<S> {
         // Get messages
         let messages = self
             .repo
-            .get_messages_since(&channel_ids, since, 150)
+            .get_messages_since(&channel_ids, since, 300)
             .await?;
 
         if messages.is_empty() {
