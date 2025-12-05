@@ -2,6 +2,10 @@ mod command;
 mod config;
 mod handler;
 mod rate_limit;
+mod utils;
+
+#[cfg(test)]
+mod tests;
 
 use std::sync::Arc;
 
