@@ -25,7 +25,78 @@ impl Repo {
 
         let db = client.database(&config.database_name);
 
-        Ok(Self { db })
+        let this = Self { db };
+        this.create_indexes().await?;
+
+        Ok(this)
+    }
+
+    async fn create_indexes(&self) -> TgFeedRepoResult<()> {
+        use mongodb::IndexModel;
+        use mongodb::bson::doc;
+        use mongodb::options::IndexOptions;
+
+        // Subscriptions indexes
+        self.subscriptions()
+            .create_index(IndexModel::builder().keys(doc! { "user_id": 1 }).build())
+            .await?;
+
+        self.subscriptions()
+            .create_index(IndexModel::builder().keys(doc! { "channel_id": 1 }).build())
+            .await?;
+
+        // Unique constraint: one subscription per user per channel
+        self.subscriptions()
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "user_id": 1, "channel_id": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await?;
+
+        // Messages indexes
+        self.messages()
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "channel_id": 1, "date": -1 })
+                    .build(),
+            )
+            .await?;
+
+        // Unique constraint: one message per channel per message_id
+        self.messages()
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "channel_id": 1, "message_id": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await?;
+
+        // Summarize state index
+        self.summarize_state()
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "user_id": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await?;
+
+        // Users index
+        self.users()
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "telegram_id": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await?;
+
+        tracing::info!("Database indexes created/verified");
+
+        Ok(())
     }
 
     fn subscriptions(&self) -> mongodb::Collection<Subscription> {

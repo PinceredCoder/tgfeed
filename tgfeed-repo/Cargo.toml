@@ -10,3 +10,4 @@ bson = { version = "2.15", features = ["chrono-0_4"] }
 serde = { workspace = true }
 thiserror = { workspace = true }
 futures = { workspace = true }
+tracing = { workspace = true }

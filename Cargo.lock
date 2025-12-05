@@ -3161,6 +3161,7 @@ dependencies = [
  "mongodb",
  "serde",
  "thiserror",
+ "tracing",
 ]
 
 [[package]]
