@@ -1,6 +1,6 @@
 use teloxide::types::{MessageEntity, MessageEntityKind};
 
-use crate::utils::format_message;
+use crate::utils::{TELEGRAM_MAX_LENGTH, format_message, split_telegram_message};
 
 #[test]
 fn test_format_message_basic() {
@@ -123,4 +123,101 @@ fn test_source_offset_calculation() {
     let source_text: String = String::from_utf16_lossy(&utf16_vec[source_start..source_start + 6]);
 
     assert_eq!(source_text, "Source");
+}
+
+#[test]
+fn test_split_telegram_message_short() {
+    let text = "Hello world";
+    let parts = split_telegram_message(text.to_string());
+
+    assert_eq!(parts.len(), 1);
+    assert_eq!(parts[0], "Hello world");
+}
+
+#[test]
+fn test_split_telegram_message_exact_limit() {
+    let text = "a".repeat(TELEGRAM_MAX_LENGTH);
+    let parts = split_telegram_message(text.clone());
+
+    assert_eq!(parts.len(), 1);
+    assert_eq!(parts[0].chars().count(), TELEGRAM_MAX_LENGTH);
+}
+
+#[test]
+fn test_split_telegram_message_over_limit() {
+    let text = "a".repeat(TELEGRAM_MAX_LENGTH + 100);
+    let parts = split_telegram_message(text.clone());
+
+    assert_eq!(parts.len(), 2);
+    assert!(parts[0].chars().count() <= TELEGRAM_MAX_LENGTH);
+    assert!(parts[1].chars().count() <= TELEGRAM_MAX_LENGTH);
+
+    // Combined should equal original
+    let combined: String = parts.concat();
+    assert_eq!(combined, text);
+}
+
+#[test]
+fn test_split_telegram_message_splits_at_newline() {
+    let first_part = "a".repeat(TELEGRAM_MAX_LENGTH - 100);
+    let second_part = "b".repeat(200);
+    let text = format!("{}\n{}", first_part, second_part);
+
+    let parts = split_telegram_message(text);
+
+    assert_eq!(parts.len(), 2);
+    assert!(parts[0].ends_with('\n') || parts[0] == first_part);
+    assert!(!parts[1].starts_with('\n') || parts[1].trim() == second_part);
+}
+
+#[test]
+fn test_split_telegram_message_preserves_content() {
+    let text = "Hello\n".repeat(1000); // Well over limit
+    let parts = split_telegram_message(text.clone());
+
+    let combined: String = parts.concat();
+    assert_eq!(combined, text);
+}
+
+#[test]
+fn test_split_telegram_message_with_emoji() {
+    // Emoji are multi-byte in UTF-8
+    let emoji_text = "👋".repeat(TELEGRAM_MAX_LENGTH + 100);
+    let parts = split_telegram_message(emoji_text.clone());
+
+    assert!(parts.len() >= 2);
+
+    // Each part should be within limit
+    for part in &parts {
+        assert!(part.chars().count() <= TELEGRAM_MAX_LENGTH);
+    }
+
+    // Combined should equal original
+    let combined: String = parts.concat();
+    assert_eq!(combined, emoji_text);
+}
+
+#[test]
+fn test_split_telegram_message_empty() {
+    let parts = split_telegram_message("".to_string());
+
+    assert_eq!(parts.len(), 1);
+    assert_eq!(parts[0], "");
+}
+
+#[test]
+fn test_split_telegram_message_multiple_splits() {
+    let text = "👋".repeat(TELEGRAM_MAX_LENGTH * 3);
+    let parts = split_telegram_message(text.clone());
+
+    assert!(parts.len() >= 3);
+
+    println!("{}", parts.len());
+
+    for part in &parts {
+        assert!(part.chars().count() <= TELEGRAM_MAX_LENGTH);
+    }
+
+    let combined: String = parts.concat();
+    assert_eq!(combined, text);
 }

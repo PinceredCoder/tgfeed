@@ -1,3 +1,5 @@
+pub(crate) const TELEGRAM_MAX_LENGTH: usize = 4096;
+
 pub fn format_message(
     channel_id: i64,
     channel_handle: String,
@@ -59,4 +61,37 @@ pub fn format_message(
     ));
 
     (full_text, fmt_entities)
+}
+
+pub fn split_telegram_message(text: String) -> Vec<String> {
+    let utf16 = text.encode_utf16().collect::<Vec<_>>();
+    let total_len = utf16.len();
+
+    if total_len <= TELEGRAM_MAX_LENGTH {
+        return vec![text.to_string()];
+    }
+
+    let mut parts = Vec::new();
+    let mut start = 0;
+
+    while start < total_len {
+        let mut end = (start + TELEGRAM_MAX_LENGTH).min(total_len);
+
+        if end < total_len {
+            // Look for a newline to split at
+            let search_start = start + TELEGRAM_MAX_LENGTH / 2;
+            if let Some(newline_pos) = utf16[search_start..end]
+                .iter()
+                .rposition(|&c| c == b'\n' as u16)
+            {
+                end = search_start + newline_pos + 1;
+            }
+        }
+
+        let part_utf16 = &utf16[start..end];
+        parts.push(String::from_utf16_lossy(part_utf16));
+        start = end;
+    }
+
+    parts
 }

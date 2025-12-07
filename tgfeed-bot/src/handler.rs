@@ -7,7 +7,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::TgFeedBot;
 use crate::command::Command;
-use crate::utils::format_message;
+use crate::utils::{format_message, split_telegram_message};
 
 pub async fn handle_command(
     bot: teloxide::prelude::Bot,
@@ -28,6 +28,7 @@ pub async fn handle_command(
         return Ok(());
     }
 
+    // TODO: extract handlers
     if let Some(text) = msg.text() {
         let response = match BotCommands::parse(text, me.username()) {
             Ok(cmd) => match cmd {
@@ -125,7 +126,17 @@ pub async fn handle_command(
                             .await;
 
                         match rx.await {
-                            Ok(Ok(summary)) => summary,
+                            Ok(Ok(summary)) => {
+                                let parts = split_telegram_message(summary);
+
+                                for part in parts {
+                                    bot.send_message(msg.chat.id, part)
+                                        .parse_mode(teloxide::types::ParseMode::Html)
+                                        .await?;
+                                }
+
+                                return Ok(())
+                            },
                             Ok(Err(e)) => format!("❌ Failed summarizing: {e}"),
                             Err(_) => "❌ Internal error: monitor not responding".to_string(),
                         }
