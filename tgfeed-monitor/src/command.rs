@@ -127,6 +127,8 @@ impl<S: Summarizer> MonitorService<S> {
             })
             .collect::<Vec<_>>();
 
+        tracing::info!("summarizing based on {} posts", messages_data.len());
+
         self.repo.update_summarize_time(user_id).await?;
 
         Ok(self.summarizer.summarize(messages_data).await?)

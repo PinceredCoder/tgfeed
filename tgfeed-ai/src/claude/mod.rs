@@ -43,7 +43,7 @@ impl Summarizer for ClaudeClient {
             r#"
             Сделай сводку новотей из следущих сообщений из Telegram-каналов. Сгруппируй по теме, если возможно.
             Форматируй, исползуья HTML-тэги: <b>bold</b>, <i>italic</i>, <u>underline</u>. Не используй Markdown.
-            Будь краток.
+            Будь краток. В начале напиши, на основе какого количества постов сделана сводка.
             
             {}
             "#,
@@ -62,7 +62,6 @@ impl Summarizer for ClaudeClient {
             .client
             .post("https://api.anthropic.com/v1/messages")
             .header("x-api-key", &self.api_key)
-            .header("anthropic-version", "2023-06-01")
             .header("content-type", "application/json")
             .json(&request)
             .send()
@@ -87,6 +86,8 @@ impl Summarizer for ClaudeClient {
             .into_iter()
             .map(|c| c.text)
             .collect::<String>();
+
+        tracing::info!(%summary, "generated summary");
 
         if summary.is_empty() {
             Ok("No summary generated".to_string())
