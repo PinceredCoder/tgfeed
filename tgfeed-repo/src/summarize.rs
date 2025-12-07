@@ -1,4 +1,3 @@
-use chrono::Utc;
 use mongodb::bson::doc;
 
 use crate::models::SummarizeState;
@@ -8,7 +7,7 @@ impl Repo {
     pub async fn get_last_summarize_time(
         &self,
         user_id: i64,
-    ) -> TgFeedRepoResult<chrono::DateTime<Utc>> {
+    ) -> TgFeedRepoResult<chrono::DateTime<chrono::Utc>> {
         let state = self
             .summarize_state()
             .find_one(doc! { "user_id": user_id })
@@ -16,15 +15,15 @@ impl Repo {
 
         match state {
             Some(s) => Ok(s.last_summarized_at),
-            // Default to 7 days ago if never summarized
-            None => Ok(Utc::now() - chrono::Duration::days(7)),
+            // Default to 3 days ago if never summarized
+            None => Ok(chrono::Utc::now() - chrono::Duration::days(3)),
         }
     }
 
     pub async fn update_summarize_time(&self, user_id: i64) -> TgFeedRepoResult<()> {
         let state = SummarizeState {
             user_id,
-            last_summarized_at: Utc::now(),
+            last_summarized_at: chrono::Utc::now(),
         };
 
         self.summarize_state()
