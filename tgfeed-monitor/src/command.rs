@@ -97,7 +97,7 @@ impl<S: Summarizer> MonitorService<S> {
             }
         };
 
-        let mut channels_map: std::collections::HashMap<i64, String> = subscriptions
+        let channels_map: std::collections::HashMap<i64, String> = subscriptions
             .into_iter()
             .map(|s| (s.channel_id, s.channel_handle))
             .collect();
@@ -117,7 +117,7 @@ impl<S: Summarizer> MonitorService<S> {
         let messages_data = messages
             .into_iter()
             .filter_map(|m| {
-                let channel_handle = channels_map.remove(&m.channel_id)?;
+                let channel_handle = channels_map.get(&m.channel_id)?.clone();
 
                 Some(MessageData {
                     channel_handle,
