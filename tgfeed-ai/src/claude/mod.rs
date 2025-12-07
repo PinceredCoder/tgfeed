@@ -42,13 +42,10 @@ impl Summarizer for ClaudeClient {
         let prompt = format!(
             r#"
             Сделай сводку новотей из следущих сообщений из Telegram-каналов. Сгруппируй по теме, если возможно.
-            Форматируй, исползуья HTML-тэги: <b>bold</b>, <i>italic</i>, <u>underline</u>. 
-            НЕ ИСПОЛЬЗУЙ MARKDOWN!!!
-            Будь краток.
-            
+            Форматируй, используя HTML-тэги: <b>bold</b>, <i>italic</i>, <u>underline</u>. Будь краток.
             {}
             "#,
-            formatted.join("\n\n")
+            formatted.join("\n")
         );
         let request = ClaudeRequest {
             model: "claude-sonnet-4-5-20250929".to_string(),
