@@ -62,6 +62,7 @@ impl Summarizer for ClaudeClient {
             .client
             .post("https://api.anthropic.com/v1/messages")
             .header("x-api-key", &self.api_key)
+            .header("anthropic-version", "2023-06-01")
             .header("content-type", "application/json")
             .json(&request)
             .send()
