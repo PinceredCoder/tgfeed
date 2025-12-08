@@ -34,7 +34,6 @@ impl Repo {
             .find(doc! {
                 "channel_id": { "$in": channel_ids },
                 "date": { "$gte": since },
-                "$expr": { "$gt": [{ "$strLenCP": "$text" }, 30] }
             })
             .sort(doc! { "date": -1 })
             .limit(limit)

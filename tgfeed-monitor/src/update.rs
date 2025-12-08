@@ -39,15 +39,18 @@ impl<S: Summarizer> MonitorService<S> {
 
                 let text = message.text().to_string();
 
-                let stored = StoredMessage {
-                    id: None,
-                    channel_id,
-                    message_id,
-                    text: text.clone(),
-                    date: chrono::Utc::now(),
-                };
+                // Skip too short messages - probably some media files
+                if text.len() > 30 {
+                    let stored = StoredMessage {
+                        id: None,
+                        channel_id,
+                        message_id,
+                        text: text.clone(),
+                        date: chrono::Utc::now(),
+                    };
 
-                self.repo.store_message(stored).await?;
+                    self.repo.store_message(stored).await?;
+                }
 
                 let entities = tgfeed_common::utils::convert_entities(message.fmt_entities());
 
