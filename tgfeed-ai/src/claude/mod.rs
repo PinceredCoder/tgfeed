@@ -42,7 +42,7 @@ impl Summarizer for ClaudeClient {
         let prompt = format!(
             r#"
             Сделай сводку новотей из следущих сообщений из Telegram-каналов. Сгруппируй по теме, если возможно.
-            Форматируй, используя HTML-тэги: <b>bold</b>, <i>italic</i>, <u>underline</u>. Будь краток.
+            Форматируй, используя только HTML-тэги (и ничего другого): <b>bold</b>, <i>italic</i>, <u>underline</u>. Будь краток.
             {}
             "#,
             formatted.join("\n")
