@@ -4,6 +4,9 @@ mod error;
 mod update;
 mod utils;
 
+#[cfg(test)]
+mod tests;
+
 use std::mem::MaybeUninit;
 use std::sync::Arc;
 

@@ -22,6 +22,7 @@ futures = "0.3.31"
 retrier = "0.2.0"
 teloxide = { version = "0.17.0", features = ["macros"] }
 reqwest = "0.12.24"
+regex = "1.11.1"
 grammers-client = { git = "https://github.com/Lonami/grammers.git" }
 grammers-session = { git = "https://github.com/Lonami/grammers.git" }
 grammers-mtsender = { git = "https://github.com/Lonami/grammers.git" }

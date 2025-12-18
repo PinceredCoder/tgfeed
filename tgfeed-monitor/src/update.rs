@@ -1,8 +1,20 @@
+use std::sync::OnceLock;
+
+use regex::Regex;
 use tgfeed_ai::Summarizer;
 use tgfeed_common::event::BotEvent;
 use tgfeed_repo::models::StoredMessage;
 
 use crate::{MonitorError, MonitorResult, MonitorService};
+
+// ERID tokens are typically 8+ characters, alphanumeric
+pub(crate) const AD_PATTERN_STR: &str = r"(?i:#реклама|(?:^|[\s\/\\?&])erid[\s:=]+[a-z0-9]{8,})";
+
+static AD_PATTERN: OnceLock<Regex> = OnceLock::new();
+
+pub(crate) fn get_ad_pattern() -> &'static Regex {
+    AD_PATTERN.get_or_init(|| Regex::new(AD_PATTERN_STR).unwrap())
+}
 
 impl<S: Summarizer> MonitorService<S> {
     pub(crate) async fn handle_update(&self, update: grammers_client::Update) -> MonitorResult<()> {
@@ -39,7 +51,29 @@ impl<S: Summarizer> MonitorService<S> {
 
                 let text = message.text().to_string();
 
-                // Skip too short messages - probably some media files
+                // Skip ads: messages with an ad hashtag or an Erid token
+                if get_ad_pattern().is_match(&text) {
+                    tracing::info!(
+                        %channel_handle,
+                        %message_id,
+                        "skipping ad message"
+                    );
+
+                    return Ok(());
+                }
+
+                // Skip empty messages - probably some media files
+                if text.is_empty() {
+                    tracing::info!(
+                        %channel_handle,
+                        %message_id,
+                        "skipping empty message"
+                    );
+
+                    return Ok(());
+                }
+
+                // Do not store too short
                 if text.len() > 30 {
                     let stored = StoredMessage {
                         id: None,

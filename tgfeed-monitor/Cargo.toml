@@ -16,3 +16,4 @@ tgfeed-common = { workspace = true }
 chrono = { workspace = true }
 sqlite = { version = "0.37.0", default-features = false }
 tgfeed-ai = { workspace = true }
+regex = { workspace = true }
