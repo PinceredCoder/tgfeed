@@ -95,7 +95,7 @@ pub async fn handle_command(
                     match rx.await {
                         Ok(Ok(subs)) if subs.is_empty() => "No active subscriptions".to_string(),
                         Ok(Ok(subs)) => {
-                            let mut response = "📋 Active subscriptions:\n".to_string();
+                            let mut response = format!("📋 Active subscriptions ({}):\n", subs.len());
                             for sub in subs {
                                 response.push_str(&format!("• @{sub}\n"));
                             }
