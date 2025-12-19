@@ -74,7 +74,7 @@ impl<S: Summarizer> MonitorService<S> {
                 }
 
                 // Do not store too short
-                if text.len() > 30 {
+                if text.len() >= 20 {
                     let stored = StoredMessage {
                         id: None,
                         channel_id,
