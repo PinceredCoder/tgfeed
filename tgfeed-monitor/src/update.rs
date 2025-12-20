@@ -1,5 +1,6 @@
 use std::sync::OnceLock;
 
+use grammers_client::grammers_tl_types::enums::MessageEntity;
 use regex::Regex;
 use tgfeed_ai::Summarizer;
 use tgfeed_common::event::BotEvent;
@@ -51,6 +52,17 @@ impl<S: Summarizer> MonitorService<S> {
 
                 let text = message.text().to_string();
 
+                // Skip empty messages - probably some media files
+                if text.is_empty() {
+                    tracing::info!(
+                        %channel_handle,
+                        %message_id,
+                        "skipping empty message"
+                    );
+
+                    return Ok(());
+                }
+
                 // Skip ads: messages with an ad hashtag or an Erid token
                 if get_ad_pattern().is_match(&text) {
                     tracing::info!(
@@ -62,12 +74,24 @@ impl<S: Summarizer> MonitorService<S> {
                     return Ok(());
                 }
 
-                // Skip empty messages - probably some media files
-                if text.is_empty() {
+                let erid_in_url = message
+                    .fmt_entities()
+                    .map(|entities| {
+                        entities.iter().any(|entity| {
+                            if let MessageEntity::TextUrl(entity_url) = entity {
+                                get_ad_pattern().is_match(&entity_url.url)
+                            } else {
+                                false
+                            }
+                        })
+                    })
+                    .unwrap_or(false);
+
+                if erid_in_url {
                     tracing::info!(
                         %channel_handle,
                         %message_id,
-                        "skipping empty message"
+                        "skipping ad message"
                     );
 
                     return Ok(());
