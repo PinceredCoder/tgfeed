@@ -45,16 +45,6 @@ impl<S: Summarizer> MonitorService<S> {
         let sender_pool = grammers_mtsender::SenderPool::new(Arc::clone(&session), config.api_id);
         let client = grammers_client::client::Client::new(&sender_pool);
 
-        // warm session cache
-        tracing::info!("iterating dialogs...");
-        while let Some(dialog) = client.iter_dialogs().next().await? {
-            let peer = dialog.peer();
-            tracing::info!(
-                peer_id = %peer.id().bare_id(),
-                peer_name = ?peer.name()
-            );
-        }
-
         let grammers_mtsender::SenderPool {
             runner,
             updates,
@@ -62,6 +52,18 @@ impl<S: Summarizer> MonitorService<S> {
         } = sender_pool;
 
         tokio::spawn(runner.run());
+
+        let mut dialogs = client.iter_dialogs();
+
+        // warm session cache
+        tracing::info!("iterating dialogs...");
+        while let Some(dialog) = dialogs.next().await? {
+            let peer = dialog.peer();
+            tracing::info!(
+                peer_id = %peer.id().bare_id(),
+                peer_name = ?peer.name()
+            );
+        }
 
         Ok(MonitorService {
             client,
