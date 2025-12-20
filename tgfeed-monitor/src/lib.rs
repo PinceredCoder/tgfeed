@@ -118,7 +118,7 @@ impl<S: Summarizer> MonitorService<S> {
         let mut updates = self.client.stream_updates(
             unsafe { self.updates.assume_init_read() },
             grammers_client::UpdatesConfiguration {
-                catch_up: false,
+                catch_up: true,
                 ..Default::default()
             },
         );
