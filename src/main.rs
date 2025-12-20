@@ -39,7 +39,8 @@ async fn main() -> anyhow::Result<()> {
                 summarizer,
                 monitor_rx,
                 event_tx,
-            )?
+            )
+            .await?
         }
     };
 

@@ -32,7 +32,7 @@ pub struct MonitorService<S: Summarizer> {
 }
 
 impl<S: Summarizer> MonitorService<S> {
-    pub fn new(
+    pub async fn new(
         config: &Config,
         repo: tgfeed_repo::Repo,
         summarizer: S,
@@ -44,6 +44,16 @@ impl<S: Summarizer> MonitorService<S> {
         )?);
         let sender_pool = grammers_mtsender::SenderPool::new(Arc::clone(&session), config.api_id);
         let client = grammers_client::client::Client::new(&sender_pool);
+
+        // warm session cache
+        tracing::info!("iterating dialogs...");
+        while let Some(dialog) = client.iter_dialogs().next().await? {
+            let peer = dialog.peer();
+            tracing::info!(
+                peer_id = %peer.id().bare_id(),
+                peer_name = ?peer.name()
+            );
+        }
 
         let grammers_mtsender::SenderPool {
             runner,
