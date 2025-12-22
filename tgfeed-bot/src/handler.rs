@@ -183,6 +183,8 @@ pub(crate) async fn handle_events(
                         .retry(|| {
                             let send_msg_fut = bot
                                 .send_message(teloxide::types::ChatId(user_id), full_text.clone())
+                                .disable_notification(true)
+                                .protect_content(true)
                                 .entities(fmt_entities.clone());
 
                             tokio::time::timeout(tokio::time::Duration::from_secs(30), send_msg_fut)
