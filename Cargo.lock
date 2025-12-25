@@ -3150,13 +3150,13 @@ dependencies = [
 name = "tgfeed-bot"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "governor",
  "reqwest",
  "retrier",
  "serde",
  "teloxide",
  "tgfeed-common",
- "thiserror",
  "tokio",
  "tracing",
 ]

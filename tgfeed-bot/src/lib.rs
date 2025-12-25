@@ -2,6 +2,7 @@ mod command;
 mod config;
 mod handler;
 mod rate_limit;
+mod response;
 mod utils;
 
 #[cfg(test)]
@@ -53,7 +54,7 @@ impl TgFeedBot {
         let event_handle = {
             let bot = bot.clone();
             tokio::spawn(async move {
-                handler::handle_events(bot, event_rx).await;
+                handler::handle_monitor_events(bot, event_rx).await;
             })
         };
 

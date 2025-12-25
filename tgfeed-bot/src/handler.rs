@@ -5,9 +5,9 @@ use tgfeed_common::command::MonitorCommand;
 use tgfeed_common::event::BotEvent;
 use tokio::sync::{mpsc, oneshot};
 
-use crate::TgFeedBot;
 use crate::command::Command;
 use crate::utils::{format_message, split_telegram_message};
+use crate::{TgFeedBot, response};
 
 pub async fn handle_command(
     bot: teloxide::prelude::Bot,
@@ -20,130 +20,44 @@ pub async fn handle_command(
         None => return Ok(()),
     };
 
+    let chat_id = msg.chat.id;
+
     if let Err(error) = this.rate_limiters.commands.check_key(&user_id) {
         tracing::warn!(%user_id, %error, "rate limit reached");
-        bot.send_message(msg.chat.id, "⏳ Please wait a moment")
-            .await?;
+        bot.send_message(chat_id, "⏳ Please wait a moment").await?;
 
         return Ok(());
     }
 
-    // TODO: extract handlers
     if let Some(text) = msg.text() {
         let response = match BotCommands::parse(text, me.username()) {
             Ok(cmd) => match cmd {
-                Command::Start => "👋 Hello! This is a Telegram channels aggregator. Run /help to see the available commands.".to_string(),
-
-                Command::Help => Command::descriptions().to_string(),
-
+                Command::Start => response::start(),
+                Command::Help => response::help(),
                 Command::Subscribe(channel_handle) => {
-                    let channel_handle = channel_handle.trim().trim_start_matches('@').to_string();
-                    if channel_handle.is_empty() {
-                        "Usage: /subscribe @channelname".to_string()
-                    } else {
-                        let (tx, rx) = oneshot::channel();
-                        let _ = this
-                            .monitor_tx
-                            .send(MonitorCommand::Subscribe {
-                                user_id,
-                                channel_handle: channel_handle.clone(),
-                                response: tx,
-                            })
-                            .await;
-
-                        match rx.await {
-                            Ok(Ok(_)) => format!("✅ Subscribed to @{}", channel_handle),
-                            Ok(Err(e)) => format!("❌ Failed to subscribe: {e}"),
-                            Err(_) => "❌ Internal error: monitor not responding".to_string(),
-                        }
-                    }
+                    this.handle_subscribe(user_id, channel_handle).await
                 }
-
                 Command::Unsubscribe(channel_handle) => {
-                    let channel_handle = channel_handle.trim().trim_start_matches('@').to_string();
-                    if channel_handle.is_empty() {
-                        "Usage: /unsubscribe @channelname".to_string()
-                    } else {
-                        let (tx, rx) = oneshot::channel();
-                        let _ = this
-                            .monitor_tx
-                            .send(MonitorCommand::Unsubscribe {
-                                user_id,
-                                channel_handle: channel_handle.clone(),
-                                response: tx,
-                            })
-                            .await;
-
-                        match rx.await {
-                            Ok(Ok(())) => format!("✅ Unsubscribed from @{}", channel_handle),
-                            Ok(Err(e)) => format!("❌ Failed to unsubscribe: {e}"),
-                            Err(_) => "❌ Internal error: monitor not responding".to_string(),
-                        }
-                    }
+                    this.handle_unsubscribe(user_id, channel_handle).await
                 }
+                Command::List => this.handle_list(user_id).await,
 
-                Command::List => {
-                    let (tx, rx) = oneshot::channel();
-                    let _ = this
-                        .monitor_tx
-                        .send(MonitorCommand::ListSubscriptions {
-                            user_id,
-                            response: tx,
-                        })
-                        .await;
+                Command::Summarize => match this.handle_summarize(user_id, chat_id, &bot).await {
+                    Ok(summary) => {
+                        let parts = split_telegram_message(summary);
 
-                    match rx.await {
-                        Ok(Ok(subs)) if subs.is_empty() => "No active subscriptions".to_string(),
-                        Ok(Ok(subs)) => {
-                            let mut response = format!("📋 Active subscriptions ({}):\n", subs.len());
-                            for sub in subs {
-                                response.push_str(&format!("• @{sub}\n"));
-                            }
-                            response
+                        for part in parts {
+                            bot.send_message(msg.chat.id, part)
+                                .parse_mode(teloxide::types::ParseMode::Html)
+                                .await?;
                         }
-                        Ok(Err(e)) => format!("❌ Failed to list subscriptions: {e}"),
-                        Err(_) => "❌ Internal error: monitor not responding".to_string(),
+
+                        return Ok(());
                     }
-                }
-
-                Command::Summarize => {
-                    if let Err(error) = this.rate_limiters.summarize.check_key(&user_id) {
-                        tracing::warn!(%user_id, %error, "/summarize rate limit reached");
-                        "⏳ /summarize is limited to once per hour".to_string()
-                    } else {
-                        // TODO: edit message instead
-                        let _message = bot
-                            .send_message(msg.chat.id, "⏳ Generating summary...")
-                            .await?;
-
-                        let (tx, rx) = oneshot::channel();
-                        let _ = this
-                            .monitor_tx
-                            .send(MonitorCommand::Summarize {
-                                user_id,
-                                response: tx,
-                            })
-                            .await;
-
-                        match rx.await {
-                            Ok(Ok(summary)) => {
-                                let parts = split_telegram_message(summary);
-
-                                for part in parts {
-                                    bot.send_message(msg.chat.id, part)
-                                        .parse_mode(teloxide::types::ParseMode::Html)
-                                        .await?;
-                                }
-
-                                return Ok(())
-                            },
-                            Ok(Err(e)) => format!("❌ Failed summarizing: {e}"),
-                            Err(_) => "❌ Internal error: monitor not responding".to_string(),
-                        }
-                    }
-                }
+                    Err(error_response) => error_response.to_string(),
+                },
             },
-            Err(_) => "❌ Unknown command".to_string(),
+            Err(_) => response::unknown_command(),
         };
 
         bot.send_message(msg.chat.id, response)
@@ -154,7 +68,7 @@ pub async fn handle_command(
     Ok(())
 }
 
-pub(crate) async fn handle_events(
+pub(crate) async fn handle_monitor_events(
     bot: teloxide::prelude::Bot,
     mut event_rx: mpsc::Receiver<BotEvent>,
 ) {
@@ -206,6 +120,126 @@ pub(crate) async fn handle_events(
                     // TODO: make map for each user
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                 }
+            }
+        }
+    }
+}
+
+macro_rules! send_logging_error {
+    ($self:ident, $monitor_command:expr) => {
+        if let Err(error) = $self
+            .monitor_tx
+            .send($monitor_command)
+            .await
+        {
+            tracing::error!(%error, "communication with monitor failed");
+            return response::internal_server_error();
+        };
+    };
+
+    (bail, $self:ident, $monitor_command:expr) => {
+        if let Err(error) = $self
+            .monitor_tx
+            .send($monitor_command)
+            .await
+        {
+            tracing::error!(%error, "communication with monitor failed");
+            anyhow::bail!(response::internal_server_error());
+        };
+    };
+}
+
+impl TgFeedBot {
+    async fn handle_subscribe(&self, user_id: i64, channel_handle: String) -> String {
+        let channel_handle = channel_handle.trim().trim_start_matches('@').to_string();
+        if channel_handle.is_empty() {
+            response::usage()
+        } else {
+            let (tx, rx) = oneshot::channel();
+
+            send_logging_error!(self, MonitorCommand::Subscribe {
+                user_id,
+                channel_handle: channel_handle.clone(),
+                response: tx,
+            });
+
+            match rx.await {
+                Ok(Ok(_)) => format!("✅ Subscribed to @{channel_handle}"),
+                Ok(Err(e)) => format!("❌ Failed to subscribe: {e}"),
+                Err(_) => response::internal_server_error(),
+            }
+        }
+    }
+
+    async fn handle_unsubscribe(&self, user_id: i64, channel_handle: String) -> String {
+        let channel_handle = channel_handle.trim().trim_start_matches('@').to_string();
+        if channel_handle.is_empty() {
+            response::usage()
+        } else {
+            let (tx, rx) = oneshot::channel();
+
+            send_logging_error!(self, MonitorCommand::Unsubscribe {
+                user_id,
+                channel_handle: channel_handle.clone(),
+                response: tx,
+            });
+
+            match rx.await {
+                Ok(Ok(())) => format!("✅ Unsubscribed from @{channel_handle}"),
+                Ok(Err(e)) => format!("❌ Failed to unsubscribe: {e}"),
+                Err(_) => response::internal_server_error(),
+            }
+        }
+    }
+
+    async fn handle_list(&self, user_id: i64) -> String {
+        let (tx, rx) = oneshot::channel();
+
+        send_logging_error!(self, MonitorCommand::ListSubscriptions {
+            user_id,
+            response: tx,
+        });
+
+        match rx.await {
+            Ok(Ok(subs)) if subs.is_empty() => "No active subscriptions".to_string(),
+            Ok(Ok(subs)) => {
+                let mut response = format!("📋 Active subscriptions ({}):\n", subs.len());
+                for sub in subs {
+                    response.push_str(&format!("• @{sub}\n"));
+                }
+                response
+            }
+            Ok(Err(e)) => format!("❌ Failed to list subscriptions: {e}"),
+            Err(_) => response::internal_server_error(),
+        }
+    }
+
+    async fn handle_summarize(
+        &self,
+        user_id: i64,
+        chat_id: teloxide::types::ChatId,
+        bot: &teloxide::prelude::Bot,
+    ) -> anyhow::Result<String> {
+        if let Err(error) = self.rate_limiters.summarize.check_key(&user_id) {
+            tracing::warn!(%user_id, %error, "/summarize rate limit reached");
+            anyhow::bail!("⏳ /summarize is limited to once per hour")
+        } else {
+            // TODO: edit message instead
+            let _message = bot
+                .send_message(chat_id, "⏳ Generating summary...")
+                .await?;
+
+            let (tx, rx) = oneshot::channel();
+
+            send_logging_error!(bail, self, MonitorCommand::Summarize {
+                user_id,
+                response: tx,
+            });
+
+            match rx.await {
+                Ok(Ok(summary)) => Ok(summary),
+                Ok(Err(error)) => anyhow::bail!("❌ Failed summarizing: {error}"),
+                Err(_) => anyhow::bail!(response::internal_server_error()),
             }
         }
     }
