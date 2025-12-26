@@ -80,6 +80,7 @@ pub(crate) async fn handle_monitor_events(
 ) {
     let retrier = retrier::RetryPolicy::exponential(tokio::time::Duration::from_secs(1));
 
+    tracing::info!("Start listening for events from monitor...");
     while let Some(event) = event_rx.recv().await {
         match event {
             BotEvent::NewMessage {
@@ -129,6 +130,8 @@ pub(crate) async fn handle_monitor_events(
             }
         }
     }
+
+    tracing::warn!("Monitor channel closed. Stop listening for events.");
 }
 
 macro_rules! send_logging_error {
