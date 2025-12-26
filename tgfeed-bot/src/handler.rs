@@ -30,6 +30,12 @@ pub async fn handle_command(
     }
 
     if let Some(text) = msg.text() {
+        tracing::info!(
+            %user_id,
+            command = text,
+            "new command"
+        );
+
         let response = match BotCommands::parse(text, me.username()) {
             Ok(cmd) => match cmd {
                 Command::Start => response::start(),
@@ -238,7 +244,7 @@ impl TgFeedBot {
 
             match rx.await {
                 Ok(Ok(summary)) => Ok(summary),
-                Ok(Err(error)) => anyhow::bail!("❌ Failed summarizing: {error}"),
+                Ok(Err(error)) => anyhow::bail!("❌ Failed to summarize: {error}"),
                 Err(_) => anyhow::bail!(response::internal_server_error()),
             }
         }
