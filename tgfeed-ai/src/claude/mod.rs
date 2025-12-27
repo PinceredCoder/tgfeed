@@ -33,14 +33,19 @@ impl Summarizer for ClaudeClient {
                      channel_handle,
                      text,
                      date,
-                 }| format!("@{channel_handle} ({date}):\n{text}",),
+                 }| {
+                    format!("@{channel_handle}\nДата и время вообщения (UTC): {date}):\n{text}",)
+                },
             )
             .collect();
 
         // TODO: from config
 
+        let now = chrono::Utc::now();
+
         let prompt = format!(
             r#"
+            Текущие дата и время (UTC): {now}
             Сделай сводку новотей из следущих сообщений из Telegram-каналов. Сгруппируй по теме, если возможно.
             Форматируй, используя только HTML-тэги (и ничего другого): <b>bold</b>, <i>italic</i>, <u>underline</u>. Будь краток.
             {}
