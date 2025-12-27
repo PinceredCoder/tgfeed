@@ -104,7 +104,7 @@ impl<S: Summarizer> MonitorService<S> {
                         channel_id,
                         message_id,
                         text: text.clone(),
-                        date: chrono::Utc::now(),
+                        date: message.date(),
                     };
 
                     self.repo.store_message(stored).await?;
