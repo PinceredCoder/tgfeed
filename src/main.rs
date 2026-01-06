@@ -44,8 +44,6 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
-    monitor.authorize().await?;
-
     let bot = tgfeed_bot::TgFeedBot::new(&config.bot_config, monitor_tx.clone());
 
     tracing::info!("Starting bot and monitor...");

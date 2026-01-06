@@ -53,7 +53,20 @@ impl<S: Summarizer> MonitorService<S> {
 
         tokio::spawn(runner.run());
 
-        let mut dialogs = client.iter_dialogs();
+        let monitor = MonitorService {
+            client,
+            handle,
+            updates: MaybeUninit::new(updates),
+            api_hash: config.api_hash.clone(),
+            repo,
+            summarizer,
+            command_rx,
+            event_tx,
+        };
+
+        monitor.authorize().await?;
+
+        let mut dialogs = monitor.client.iter_dialogs();
 
         // warm session cache
         tracing::info!("iterating dialogs...");
@@ -65,19 +78,10 @@ impl<S: Summarizer> MonitorService<S> {
             );
         }
 
-        Ok(MonitorService {
-            client,
-            handle,
-            updates: MaybeUninit::new(updates),
-            api_hash: config.api_hash.clone(),
-            repo,
-            summarizer,
-            command_rx,
-            event_tx,
-        })
+        Ok(monitor)
     }
 
-    pub async fn authorize(&self) -> MonitorResult<()> {
+    async fn authorize(&self) -> MonitorResult<()> {
         tracing::info!("Checking authorization status...");
 
         if self.client.is_authorized().await? {
